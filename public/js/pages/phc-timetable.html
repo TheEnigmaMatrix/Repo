@@ -3,132 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHC Timetable - UAH</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>PHC Timetable - UAH IITJ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        .phc-container {
+        /* Shared UI Variables from Dashboard */
+        :root {
+            --bg-app: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --accent: #4a90e2; 
+            --accent-secondary: #c49b3f;
+            --border-color: rgba(0, 0, 0, 0.05);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --radius: 24px;
+        }
+
+        body.dark-mode {
+            --bg-app: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #60a5fa;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
             display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
+            min-height: 100vh;
+            transition: background 0.4s ease;
         }
-        .admin-section {
-            flex: 1;
-            min-width: 300px;
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 40px 20px;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
         }
-        .display-section {
-            flex: 2;
-            min-width: 400px;
-        }
-        .day-group {
-            margin-bottom: 25px;
-        }
-        .day-title {
-            background: #1a2b4c;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 5px 5px 0 0;
-            font-weight: 600;
-        }
-        .doctor-row {
+
+        .logo { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 40px; padding-left: 15px; }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            padding: 10px 12px;
-            border-bottom: 1px solid #ecf0f1;
-            background: #f8f9fa;
+            gap: 12px;
+            margin-bottom: 8px;
+            transition: 0.3s;
         }
-        .doctor-name {
-            width: 150px;
+
+        .nav-links a:hover, .nav-links a.active {
+            background: var(--card-bg);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main Content Styling */
+        .content {
+            margin-left: 280px;
+            padding: 40px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .search-container { position: relative; flex: 1; max-width: 400px; margin: 0 20px; }
+        
+        #searchInput {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            outline: none;
+            box-shadow: var(--shadow);
+        }
+
+        .theme-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
             font-weight: 600;
-            color: #1a2b4c;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
         }
-        .doctor-specialization {
-            width: 150px;
-            color: #7f8c8d;
+
+        /* PHC Specific Layout */
+        .phc-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            align-items: start;
         }
-        .doctor-time {
-            width: 150px;
-            font-weight: 500;
+
+        .admin-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            position: sticky;
+            top: 20px;
         }
-        .doctor-actions {
-            width: 80px;
-            text-align: right;
+
+        .admin-card h3 { margin-bottom: 20px; color: var(--accent); }
+
+        .admin-card input, .admin-card select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-app);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            outline: none;
         }
-        .delete-btn {
-            background: #e74c3c;
+
+        .btn-fresh {
+            background: var(--accent);
             color: white;
             border: none;
-            padding: 3px 8px;
-            border-radius: 3px;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
             cursor: pointer;
-            font-size: 0.8rem;
+            width: 100%;
+            transition: 0.3s;
         }
-        .delete-btn:hover {
-            background: #c0392b;
-        }
-        .admin-form {
-            background: #ecf0f1;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .admin-form input, .admin-form select {
-            margin: 10px 0;
-        }
-        .filter-bar {
-            display: flex;
-            gap: 10px;
+
+        /* Doctor Cards */
+        .doctor-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
             margin-bottom: 20px;
-            flex-wrap: wrap;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.3s ease;
         }
-        .filter-bar input, .filter-bar button {
-            flex: 1;
-            min-width: 150px;
+
+        .doctor-card:hover { transform: translateY(-5px); }
+
+        .doctor-info b { display: block; font-size: 1.1rem; color: var(--text-main); }
+        .doctor-info span { color: var(--text-muted); font-size: 0.9rem; }
+
+        .time-pill {
+            background: var(--accent-secondary);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
         }
-        .no-schedule {
-            padding: 20px;
-            text-align: center;
-            color: #95a5a6;
+
+        /* Mobile Adjustments */
+        @media (max-width: 1000px) {
+            .sidebar { display: none; }
+            .content { margin-left: 0; padding: 20px; }
+            .phc-layout { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="container">
-            <a href="/dashboard.html">Home</a>
-            <a href="/pages/mess-crowd.html">Mess Crowd</a>
-            <a href="/pages/lost-found.html">Lost & Found</a>
-            <a href="/pages/notifications.html">Notifications</a>
-            <a href="/pages/timetable-personal.html">My Timetable</a>
-            <a href="/pages/timetable-course.html">Course Timetable</a>
-            <a href="/pages/qr-tab.html">QR Codes</a>
-            <a href="/pages/bus-schedule.html">Bus</a>
-            <a href="/pages/mess-menu.html">Mess Menu</a>
-            <a href="/pages/phc-timetable.html">PHC</a>
-            <a href="/pages/restaurant-ordering.html">Order Food</a>
-            <button id="logout">Logout</button>
-        </div>
-    </div>
-    <div class="container">
-        <h1>PHC Timetable</h1>
 
-        <!-- Filter Bar -->
-        <div class="filter-bar">
-            <input type="text" id="filterDoctor" placeholder="Filter by doctor name">
-            <input type="text" id="filterSpecialization" placeholder="Filter by specialization">
-            <button id="applyFilter">Apply Filter</button>
-            <button id="resetFilter">Reset</button>
+    <nav class="sidebar">
+        <div class="logo">UAH IITJ</div>
+        <div class="nav-links">
+            <a href="/dashboard.html">🏠 Dashboard</a>
+            <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
+            <a href="/pages/phc-timetable.html" class="active">🏥 PHC Timetable</a>
+            <a href="/pages/notifications.html">📢 Notices</a>
+            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/qr-tab.html">📱 QR Wallet</a>
         </div>
+    </nav>
 
-        <div class="phc-container">
-            <!-- Admin form (visible only to admins) -->
-            <div class="admin-section" id="adminSection" style="display: none;">
-                <div class="card admin-form">
-                    <h3>Manage PHC Schedule (Admin)</h3>
+    <main class="content">
+        <header>
+            <div class="welcome-text">
+                <h1>PHC Timetable 🏥</h1>
+                <p style="color: var(--text-muted);">Health Center timings & doctor availability</p>
+            </div>
+            <div class="search-container">
+                <input type="text" placeholder="Search doctor or specialization..." id="searchInput">
+            </div>
+            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+        </header>
+
+        <div class="phc-layout">
+            <aside id="adminSection" style="display: none;">
+                <div class="admin-card">
+                    <h3>Manage PHC Schedule</h3>
                     <form id="addPhcForm">
                         <input type="text" id="doctorName" placeholder="Doctor Name" required>
-                        <input type="text" id="specialization" placeholder="Specialization (optional)">
+                        <input type="text" id="specialization" placeholder="Specialization (e.g. Dentist)">
                         <select id="dayOfWeek" required>
                             <option value="">Select Day</option>
-                            <option value="0">Sunday</option>
                             <option value="1">Monday</option>
                             <option value="2">Tuesday</option>
                             <option value="3">Wednesday</option>
@@ -138,20 +242,53 @@
                         </select>
                         <input type="time" id="startTime" required>
                         <input type="time" id="endTime" required>
-                        <button type="submit">Add Schedule</button>
+                        <button type="submit" class="btn-fresh">Add Timing</button>
                     </form>
                 </div>
-            </div>
+            </aside>
 
-            <!-- Display schedules -->
-            <div class="display-section">
-                <div class="card">
-                    <h3>Doctor Availability</h3>
-                    <div id="phcList"></div>
+            <section id="phcList">
+                <div class="doctor-card">
+                    <div class="doctor-info">
+                        <b>Dr. Sharma</b>
+                        <span>General Physician • Monday</span>
+                    </div>
+                    <div class="time-pill">09:00 AM - 01:00 PM</div>
                 </div>
-            </div>
+            </section>
         </div>
-    </div>
+    </main>
+
+    <nav class="mobile-nav" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--glass-bg); backdrop-filter: blur(20px); padding: 10px 25px; border-radius: 50px; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.1); gap: 30px; z-index: 1000;">
+        <a href="/dashboard.html">🏠</a>
+        <a href="/pages/phc-timetable.html" style="color: var(--accent);">🏥</a>
+        <a href="/pages/notifications.html">📢</a>
+        <a href="/pages/qr-tab.html">📱</a>
+    </nav>
+
+    <script>
+        // Dark Mode Logic
+        const themeBtn = document.getElementById('themeToggle');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
+        });
+
+        if(localStorage.getItem('uah-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeBtn.innerText = '☀️ Light Mode';
+        }
+
+        // Filter Logic
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.doctor-card').forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(term) ? 'flex' : 'none';
+            });
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/phc-timetable.js"></script>
