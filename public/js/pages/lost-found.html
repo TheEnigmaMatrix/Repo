@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost & Found - UAH</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .lost-found-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .form-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        .list-section {
+            flex: 2;
+            min-width: 400px;
+        }
+        .item-card {
+            background: #f9f9f9;
+            border-left: 4px solid #1a2b4c;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        .item-card.found {
+            border-left-color: #27ae60;
+        }
+        .item-card.lost {
+            border-left-color: #e74c3c;
+        }
+        .item-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .item-images img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .item-images img:hover {
+            transform: scale(1.05);
+        }
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-bar select, .filter-bar button {
+            flex: 1;
+            min-width: 150px;
+        }
+        .contact-email {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 80%;
+            max-height: 80%;
+            position: relative;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <a href="/dashboard.html">Home</a>
+            <a href="/pages/mess-crowd.html">Mess Crowd</a>
+            <a href="/pages/lost-found.html">Lost & Found</a>
+            <a href="/pages/notifications.html">Notifications</a>
+            <a href="/pages/timetable-personal.html">My Timetable</a>
+            <a href="/pages/timetable-course.html">Course Timetable</a>
+            <a href="/pages/qr-tab.html">QR Codes</a>
+            <a href="/pages/bus-schedule.html">Bus</a>
+            <a href="/pages/mess-menu.html">Mess Menu</a>
+            <a href="/pages/phc-timetable.html">PHC</a>
+            <a href="/pages/restaurant-ordering.html">Order Food</a>
+            <button id="logout">Logout</button>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Lost & Found</h1>
+        <div class="lost-found-container">
+            <div class="form-section">
+                <div class="card">
+                    <h3>Report an Item</h3>
+                    <form id="reportForm">
+                        <select id="itemType" required>
+                            <option value="">Select type</option>
+                            <option value="lost">I lost something</option>
+                            <option value="found">I found something</option>
+                        </select>
+                        <input type="text" id="title" placeholder="Title (e.g., 'Black Phone')" required>
+                        <input type="text" id="category" placeholder="Category (e.g., 'Phone', 'Watch')" required>
+                        <textarea id="description" placeholder="Description (optional)" rows="3"></textarea>
+                        <input type="email" id="contactEmail" placeholder="Contact Email" required>
+                        <label for="images">Upload Images (up to 5):</label>
+                        <input type="file" id="images" accept="image/*" multiple>
+                        <button type="submit">Submit</button>
+                    </form>
+                </div>
+            </div>
+            <div class="list-section">
+                <div class="card">
+                    <h3>Browse Items</h3>
+                    <div class="filter-bar">
+                        <select id="filterType">
+                            <option value="">All types</option>
+                            <option value="lost">Lost</option>
+                            <option value="found">Found</option>
+                        </select>
+                        <input type="text" id="filterCategory" placeholder="Filter by category (e.g., Phone)">
+                        <button id="applyFilter">Apply Filter</button>
+                        <button id="resetFilter">Reset</button>
+                    </div>
+                    <div id="itemsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for image preview -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/lost-found.js"></script>
+</body>
+</html>

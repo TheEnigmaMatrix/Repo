@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mess Menu - UAH</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .menu-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .admin-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        .display-section {
+            flex: 2;
+            min-width: 400px;
+        }
+        .category-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .category-tab {
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .category-tab.active {
+            background: #1a2b4c;
+            color: white;
+        }
+        .day-group {
+            margin-bottom: 25px;
+        }
+        .day-title {
+            background: #1a2b4c;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px 5px 0 0;
+            font-weight: 600;
+        }
+        .meal-row {
+            display: flex;
+            padding: 8px 12px;
+            border-bottom: 1px solid #ecf0f1;
+            background: #f8f9fa;
+        }
+        .meal-type {
+            width: 100px;
+            font-weight: 500;
+            color: #1a2b4c;
+        }
+        .meal-items {
+            flex: 1;
+        }
+        .meal-items ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .admin-form {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .admin-form input, .admin-form select, .admin-form textarea {
+            margin: 10px 0;
+        }
+        .items-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .no-menu {
+            padding: 20px;
+            text-align: center;
+            color: #95a5a6;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 3px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <a href="/dashboard.html">Home</a>
+            <a href="/pages/mess-crowd.html">Mess Crowd</a>
+            <a href="/pages/lost-found.html">Lost & Found</a>
+            <a href="/pages/notifications.html">Notifications</a>
+            <a href="/pages/timetable-personal.html">My Timetable</a>
+            <a href="/pages/timetable-course.html">Course Timetable</a>
+            <a href="/pages/qr-tab.html">QR Codes</a>
+            <a href="/pages/bus-schedule.html">Bus</a>
+            <a href="/pages/mess-menu.html">Mess Menu</a>
+            <a href="/pages/phc-timetable.html">PHC</a>
+            <a href="/pages/restaurant-ordering.html">Order Food</a>
+            <button id="logout">Logout</button>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Mess Menu</h1>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs">
+            <button class="category-tab active" data-category="veg">Vegetarian</button>
+            <button class="category-tab" data-category="non-veg">Non-Vegetarian</button>
+            <button class="category-tab" data-category="jain">Jain</button>
+        </div>
+
+        <div class="menu-container">
+            <!-- Admin form (visible only to admins) -->
+            <div class="admin-section" id="adminSection" style="display: none;">
+                <div class="card admin-form">
+                    <h3>Add Menu Entry (Admin)</h3>
+                    <form id="addMenuForm">
+                        <select id="mealType" required>
+                            <option value="">Select Meal</option>
+                            <option value="breakfast">Breakfast</option>
+                            <option value="lunch">Lunch</option>
+                            <option value="snacks">Snacks</option>
+                            <option value="dinner">Dinner</option>
+                        </select>
+                        <select id="dayOfWeek" required>
+                            <option value="">Select Day</option>
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                        </select>
+                        <select id="categorySelect" required>
+                            <option value="veg">Vegetarian</option>
+                            <option value="non-veg">Non-Vegetarian</option>
+                            <option value="jain">Jain</option>
+                        </select>
+                        <textarea id="items" class="items-input" placeholder="Enter items (one per line)" rows="4" required></textarea>
+                        <button type="submit">Add Menu</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Menu display -->
+            <div class="display-section">
+                <div class="card">
+                    <h3>Weekly Menu</h3>
+                    <div id="menuList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/mess-menu.js"></script>
+</body>
+</html>
