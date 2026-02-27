@@ -1,103 +1,175 @@
+/* --- Global Variables & Theme Setup --- */
+:root {
+    /* Light Mode Palette */
+    --bg-app: #f0f4f8;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --card-bg: #ffffff;
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    --accent: #4a90e2;
+    --accent-secondary: #c49b3f;
+    --border-color: rgba(255, 255, 255, 0.3);
+    --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --radius: 24px;
+}
+
+body.dark-mode {
+    /* Dark Mode Palette */
+    --bg-app: #0f172a;
+    --glass-bg: rgba(30, 41, 59, 0.7);
+    --card-bg: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #60a5fa;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* --- Base Styles --- */
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
 }
 
 body {
-    background: #f5f7fa;
-    color: #2c3e50;
-    line-height: 1.6;
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+/* --- Sidebar Navigation --- */
+.sidebar {
+    width: 280px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 40px 20px;
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
 }
 
-h1, h2, h3 {
-    color: #1a2b4c; /* IITJ navy */
+.sidebar .logo {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--accent);
+    margin-bottom: 50px;
+    padding-left: 15px;
 }
 
-h1 {
-    border-bottom: 3px solid #c49b3f; /* gold */
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-button, .btn {
-    background: #1a2b4c;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background 0.3s;
+.nav-links a {
     text-decoration: none;
+    color: var(--text-muted);
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: 0.3s;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    background: var(--card-bg);
+    color: var(--accent);
+    box-shadow: var(--shadow);
+}
+
+/* --- Main Content Area --- */
+.content {
+    margin-left: 280px;
+    padding: 40px;
+    width: 100%;
+    max-width: 1400px;
+}
+
+/* --- Search & Header Components --- */
+.search-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 12px 20px 12px 45px;
+    border-radius: 15px;
+    border: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    color: var(--text-main);
+    outline: none;
+}
+
+/* --- Cards & Stats --- */
+.stat-box {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+/* --- Buttons --- */
+.btn-fresh {
+    background: var(--bg-app);
+    color: var(--accent);
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    border: 1px solid var(--accent);
     display: inline-block;
 }
 
-button:hover, .btn:hover {
-    background: #c49b3f;
+/* --- Mobile Elements --- */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    padding: 10px 25px;
+    border-radius: 50px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    z-index: 1000;
+    gap: 30px;
 }
 
-input, select, textarea {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 16px;
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.navbar {
-    background: #1a2b4c;
-    color: white;
-    padding: 15px 0;
-}
-
-.navbar .container {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.navbar a {
-    color: white;
-    text-decoration: none;
-    margin-right: 20px;
-    font-weight: 500;
-}
-
-.navbar a:hover {
-    color: #c49b3f;
-}
-
-#logout {
-    background: transparent;
-    border: 1px solid white;
-    margin-left: auto;
-}
-
-#logout:hover {
-    background: #c49b3f;
-    border-color: #c49b3f;
+@media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { margin-left: 0; padding: 20px; }
+    .mobile-nav { display: flex; }
 }
