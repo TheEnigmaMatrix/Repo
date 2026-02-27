@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Timetable - UAH</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .day-group {
+            margin-bottom: 30px;
+        }
+        .day-title {
+            background: #1a2b4c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px 5px 0 0;
+            font-weight: 600;
+        }
+        .event-row {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ecf0f1;
+            background: #f8f9fa;
+        }
+        .event-time {
+            width: 150px;
+            font-weight: 500;
+        }
+        .event-name {
+            flex: 2;
+        }
+        .event-location {
+            width: 150px;
+            color: #7f8c8d;
+        }
+        .event-actions {
+            width: 80px;
+            text-align: right;
+        }
+        .delete-event {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .delete-event:hover {
+            background: #c0392b;
+        }
+        .add-form {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .form-row input, .form-row select {
+            flex: 1;
+            min-width: 150px;
+        }
+        .time-inputs {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .time-inputs input[type="time"] {
+            width: 120px;
+        }
+        .day-select {
+            width: 150px;
+        }
+        .submit-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .submit-btn:hover {
+            background: #2ecc71;
+        }
+        .no-events {
+            padding: 20px;
+            text-align: center;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <a href="/dashboard.html">Home</a>
+            <a href="/pages/mess-crowd.html">Mess Crowd</a>
+            <a href="/pages/lost-found.html">Lost & Found</a>
+            <a href="/pages/notifications.html">Notifications</a>
+            <a href="/pages/timetable-personal.html">My Timetable</a>
+            <a href="/pages/timetable-course.html">Course Timetable</a>
+            <a href="/pages/qr-tab.html">QR Codes</a>
+            <a href="/pages/bus-schedule.html">Bus</a>
+            <a href="/pages/mess-menu.html">Mess Menu</a>
+            <a href="/pages/phc-timetable.html">PHC</a>
+            <a href="/pages/restaurant-ordering.html">Order Food</a>
+            <button id="logout">Logout</button>
+        </div>
+    </div>
+    <div class="container">
+        <h1>My Personal Timetable</h1>
+
+        <!-- Add Event Form -->
+        <div class="add-form card">
+            <h3>Add New Event</h3>
+            <form id="addEventForm">
+                <div class="form-row">
+                    <input type="text" id="eventName" placeholder="Event name" required>
+                    <select id="dayOfWeek" class="day-select" required>
+                        <option value="">Select day</option>
+                        <option value="0">Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                    <div class="time-inputs">
+                        <input type="time" id="startTime" required>
+                        <span>to</span>
+                        <input type="time" id="endTime" required>
+                    </div>
+                    <input type="text" id="location" placeholder="Location (optional)">
+                    <button type="submit" class="submit-btn">Add Event</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Timetable Display -->
+        <div id="timetableContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/timetable-personal.js"></script>
+</body>
+</html>

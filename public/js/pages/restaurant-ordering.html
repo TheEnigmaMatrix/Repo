@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Ordering - UAH</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .restaurant-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .admin-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        .list-section {
+            flex: 2;
+            min-width: 400px;
+        }
+        .admin-form {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .admin-form input, .admin-form button {
+            margin: 10px 0;
+        }
+        .restaurant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .restaurant-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .restaurant-card:hover {
+            transform: translateY(-5px);
+        }
+        .restaurant-logo {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin: 0 auto 15px;
+        }
+        .restaurant-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1a2b4c;
+            margin-bottom: 15px;
+        }
+        .order-btn {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        .order-btn:hover {
+            background: #2ecc71;
+        }
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .no-restaurants {
+            text-align: center;
+            padding: 30px;
+            color: #95a5a6;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="container">
+            <a href="/dashboard.html">Home</a>
+            <a href="/pages/mess-crowd.html">Mess Crowd</a>
+            <a href="/pages/lost-found.html">Lost & Found</a>
+            <a href="/pages/notifications.html">Notifications</a>
+            <a href="/pages/timetable-personal.html">My Timetable</a>
+            <a href="/pages/timetable-course.html">Course Timetable</a>
+            <a href="/pages/qr-tab.html">QR Codes</a>
+            <a href="/pages/bus-schedule.html">Bus</a>
+            <a href="/pages/mess-menu.html">Mess Menu</a>
+            <a href="/pages/phc-timetable.html">PHC</a>
+            <a href="/pages/restaurant-ordering.html">Order Food</a>
+            <button id="logout">Logout</button>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Restaurant Ordering</h1>
+        <div class="restaurant-container">
+            <!-- Admin form (visible only to admins) -->
+            <div class="admin-section" id="adminSection" style="display: none;">
+                <div class="card admin-form">
+                    <h3>Manage Restaurants (Admin)</h3>
+                    <form id="addRestaurantForm">
+                        <input type="text" id="restaurantName" placeholder="Restaurant Name" required>
+                        <input type="url" id="restaurantUrl" placeholder="Website URL" required>
+                        <input type="url" id="restaurantLogo" placeholder="Logo URL (optional)">
+                        <button type="submit">Add Restaurant</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Restaurant list -->
+            <div class="list-section">
+                <div class="card">
+                    <h3>Order Food Online</h3>
+                    <div id="restaurantList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/restaurant-ordering.js"></script>
+</body>
+</html>
