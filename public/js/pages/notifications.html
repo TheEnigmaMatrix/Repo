@@ -3,141 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications - UAH</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Notices - UAH IITJ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        .notification-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-left: 4px solid #1a2b4c;
+        /* Shared UI Variables from Dashboard */
+        :root {
+            --bg-app: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --accent: #4a90e2; 
+            --accent-secondary: #c49b3f;
+            --border-color: rgba(0, 0, 0, 0.05);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --radius: 24px;
         }
-        .notification-card.clubs { border-left-color: #3498db; }
-        .notification-card.phc { border-left-color: #2ecc71; }
-        .notification-card.mess { border-left-color: #f39c12; }
-        .notification-card.hostel { border-left-color: #9b59b6; }
-        .notification-card.academic { border-left-color: #e74c3c; }
-        .notification-card.general { border-left-color: #95a5a6; }
 
-        .notification-header {
+        body.dark-mode {
+            --bg-app: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #60a5fa;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            transition: background 0.4s ease;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 40px 20px;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .logo { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 40px; padding-left: 15px; }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: var(--card-bg);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main Content Styling */
+        .content {
+            margin-left: 280px;
+            padding: 40px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 40px;
         }
-        .notification-category {
-            background: #ecf0f1;
-            padding: 3px 10px;
+
+        .search-container { position: relative; flex: 1; max-width: 400px; margin: 0 20px; }
+        
+        #searchInput {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
             border-radius: 15px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #2c3e50;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            outline: none;
+            box-shadow: var(--shadow);
         }
-        .notification-date {
-            color: #7f8c8d;
-            font-size: 0.9rem;
-        }
-        .notification-title {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            color: #1a2b4c;
-        }
-        .notification-content {
-            color: #34495e;
-            line-height: 1.6;
-        }
-        .admin-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        .delete-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
+
+        .theme-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 50px;
             cursor: pointer;
-            font-size: 0.8rem;
-            margin-top: 10px;
+            font-weight: 600;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
         }
-        .delete-btn:hover {
-            background: #c0392b;
+
+        /* Notice Card Specific Styles */
+        .notice-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            position: relative;
         }
-        .filter-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+
+        .dept-tag {
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: inline-block;
         }
-        .filter-bar select, .filter-bar button {
-            flex: 1;
-            min-width: 150px;
+
+        /* Color Coding by Department */
+        .tag-Academic { background: #e0f2fe; color: #0369a1; }
+        .tag-Clubs { background: #fdf2f8; color: #be185d; }
+        .tag-Mess { background: #fef3c7; color: #92400e; }
+        .tag-PHC { background: #dcfce7; color: #166534; }
+
+        /* Admin Management Card */
+        .admin-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            margin-bottom: 40px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .content { margin-left: 0; padding: 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="container">
-            <a href="/dashboard.html">Home</a>
-            <a href="/pages/mess-crowd.html">Mess Crowd</a>
-            <a href="/pages/lost-found.html">Lost & Found</a>
-            <a href="/pages/notifications.html">Notifications</a>
-            <a href="/pages/timetable-personal.html">My Timetable</a>
-            <a href="/pages/timetable-course.html">Course Timetable</a>
-            <a href="/pages/qr-tab.html">QR Codes</a>
-            <a href="/pages/bus-schedule.html">Bus</a>
-            <a href="/pages/mess-menu.html">Mess Menu</a>
-            <a href="/pages/phc-timetable.html">PHC</a>
-            <a href="/pages/restaurant-ordering.html">Order Food</a>
-            <button id="logout">Logout</button>
-        </div>
-    </div>
-    <div class="container">
-        <h1>Institute Notifications</h1>
 
-        <!-- Admin form (hidden by default) -->
-        <div id="adminFormContainer" style="display: none;">
-            <div class="admin-form card">
-                <h3>Post New Notification (Admin)</h3>
-                <form id="notificationForm">
-                    <input type="text" id="title" placeholder="Title" required>
-                    <select id="category" required>
-                        <option value="">Select category</option>
-                        <option value="Clubs">Clubs</option>
-                        <option value="PHC">PHC</option>
-                        <option value="Mess">Mess</option>
-                        <option value="Hostel">Hostel</option>
-                        <option value="Academic">Academic</option>
-                        <option value="General">General</option>
-                    </select>
-                    <textarea id="content" placeholder="Notification content" rows="5" required></textarea>
-                    <button type="submit">Post Notification</button>
-                </form>
+    <nav class="sidebar">
+        <div class="logo">UAH IITJ</div>
+        <div class="nav-links">
+            <a href="/dashboard.html">🏠 Dashboard</a>
+            <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
+            <a href="/pages/notifications.html" class="active">📢 Notice Board</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
+            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/qr-tab.html">📱 QR Wallet</a>
+        </div>
+    </nav>
+
+    <main class="content">
+        <header>
+            <div class="welcome-text">
+                <h1>Notices 📢</h1>
+                <p style="color: var(--text-muted);">Official campus announcements</p>
+            </div>
+            <div class="search-container">
+                <input type="text" placeholder="Search notices..." id="searchInput">
+            </div>
+            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+        </header>
+
+        <div id="adminSection" style="display: none;">
+            <div class="admin-card">
+                <h3 style="margin-bottom: 15px;">Post a New Notice</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Administrators can broadcast announcements here.</p>
             </div>
         </div>
 
-        <!-- Filter controls -->
-        <div class="filter-bar">
-            <select id="filterCategory">
-                <option value="">All categories</option>
-                <option value="Clubs">Clubs</option>
-                <option value="PHC">PHC</option>
-                <option value="Mess">Mess</option>
-                <option value="Hostel">Hostel</option>
-                <option value="Academic">Academic</option>
-                <option value="General">General</option>
-            </select>
-            <button id="applyFilter">Apply Filter</button>
-            <button id="resetFilter">Reset</button>
-        </div>
+        <div id="notificationsList">
+            <div class="notice-card">
+                <div class="dept-tag tag-Academic">Academic</div>
+                <h3 style="margin-bottom: 10px; font-size: 1.25rem;">End-Semester Registration</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                    The registration portal for the upcoming semester will be live starting tomorrow at 10:00 AM. 
+                    Please ensure all dues are cleared before attempting to register.
+                </p>
+                <div style="margin-top: 20px; font-size: 0.8rem; color: var(--text-muted);">Posted 2 hours ago</div>
+            </div>
 
-        <!-- Notifications list -->
-        <div id="notificationsList"></div>
-    </div>
+            <div class="notice-card">
+                <div class="dept-tag tag-Mess">Mess</div>
+                <h3 style="margin-bottom: 10px; font-size: 1.25rem;">Special Dinner Notice</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                    There will be a special menu for tomorrow's dinner on the occasion of the inter-IIT sports meet.
+                </p>
+                <div style="margin-top: 20px; font-size: 0.8rem; color: var(--text-muted);">Posted 5 hours ago</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Theme Toggle Logic
+        const themeBtn = document.getElementById('themeToggle');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
+        });
+
+        if(localStorage.getItem('uah-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeBtn.innerText = '☀️ Light Mode';
+        }
+
+        // Simple Search Filter
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.notice-card').forEach(card => {
+                const text = card.innerText.toLowerCase();
+                card.style.display = text.includes(term) ? 'block' : 'none';
+            });
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/notifications.js"></script>

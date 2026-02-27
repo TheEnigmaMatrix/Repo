@@ -3,173 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lost & Found - UAH</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Lost & Found - UAH IITJ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        .lost-found-container {
+        /* Shared UI Variables */
+        :root {
+            --bg-app: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --accent: #4a90e2; 
+            --accent-secondary: #c49b3f;
+            --border-color: rgba(0, 0, 0, 0.05);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --radius: 24px;
+        }
+
+        body.dark-mode {
+            --bg-app: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #60a5fa;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
             display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
+            min-height: 100vh;
+            transition: background 0.4s ease;
         }
-        .form-section {
-            flex: 1;
-            min-width: 300px;
-        }
-        .list-section {
-            flex: 2;
-            min-width: 400px;
-        }
-        .item-card {
-            background: #f9f9f9;
-            border-left: 4px solid #1a2b4c;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 0 8px 8px 0;
-        }
-        .item-card.found {
-            border-left-color: #27ae60;
-        }
-        .item-card.lost {
-            border-left-color: #e74c3c;
-        }
-        .item-images {
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-color);
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin: 10px 0;
+            flex-direction: column;
+            padding: 40px 20px;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
         }
-        .item-images img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 5px;
+
+        .logo { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 40px; padding-left: 15px; }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: var(--card-bg);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main Content */
+        .content {
+            margin-left: 280px;
+            padding: 40px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .search-container { position: relative; flex: 1; max-width: 400px; margin: 0 20px; }
+        
+        #searchInput {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            outline: none;
+            box-shadow: var(--shadow);
+        }
+
+        .theme-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.2s;
+            font-weight: 600;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
         }
-        .item-images img:hover {
-            transform: scale(1.05);
+
+        /* Lost & Found Layout */
+        .lf-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+            align-items: start;
         }
-        .filter-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+
+        .report-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            position: sticky;
+            top: 20px;
         }
-        .filter-bar select, .filter-bar button {
-            flex: 1;
-            min-width: 150px;
+
+        .report-card h3 { margin-bottom: 20px; color: var(--accent); }
+
+        .report-card input, .report-card select, .report-card textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-app);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            outline: none;
         }
-        .contact-email {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 10px;
-        }
-        .delete-btn {
-            background: #e74c3c;
+
+        .btn-fresh {
+            background: var(--accent);
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
             cursor: pointer;
-            font-size: 0.8rem;
-            margin-top: 10px;
-        }
-        .delete-btn:hover {
-            background: #c0392b;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
             width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.9);
+            transition: 0.3s;
         }
-        .modal-content {
-            margin: auto;
-            display: block;
-            max-width: 80%;
-            max-height: 80%;
+
+        /* Item Cards */
+        .item-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
             position: relative;
-            top: 50%;
-            transform: translateY(-50%);
+            overflow: hidden;
         }
-        .close {
+
+        .status-badge {
             position: absolute;
-            top: 20px;
-            right: 35px;
-            color: #fff;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
+            top: 0;
+            right: 0;
+            padding: 8px 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 0 0 0 20px;
+            color: white;
+        }
+
+        .item-card.lost .status-badge { background: #ff4757; }
+        .item-card.found .status-badge { background: #2ed573; }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .content { margin-left: 0; padding: 20px; }
+            .lf-layout { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="container">
-            <a href="/dashboard.html">Home</a>
-            <a href="/pages/mess-crowd.html">Mess Crowd</a>
-            <a href="/pages/lost-found.html">Lost & Found</a>
-            <a href="/pages/notifications.html">Notifications</a>
-            <a href="/pages/timetable-personal.html">My Timetable</a>
-            <a href="/pages/timetable-course.html">Course Timetable</a>
-            <a href="/pages/qr-tab.html">QR Codes</a>
-            <a href="/pages/bus-schedule.html">Bus</a>
-            <a href="/pages/mess-menu.html">Mess Menu</a>
-            <a href="/pages/phc-timetable.html">PHC</a>
-            <a href="/pages/restaurant-ordering.html">Order Food</a>
-            <button id="logout">Logout</button>
+
+    <nav class="sidebar">
+        <div class="logo">UAH IITJ</div>
+        <div class="nav-links">
+            <a href="/dashboard.html">🏠 Dashboard</a>
+            <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
+            <a href="/pages/lost-found.html" class="active">🔍 Lost & Found</a>
+            <a href="/pages/notifications.html">📢 Notices</a>
+            <a href="/pages/timetable-personal.html">📅 Timetable</a>
+            <a href="/pages/qr-tab.html">📱 QR Wallet</a>
         </div>
-    </div>
-    <div class="container">
-        <h1>Lost & Found</h1>
-        <div class="lost-found-container">
-            <div class="form-section">
-                <div class="card">
-                    <h3>Report an Item</h3>
+    </nav>
+
+    <main class="content">
+        <header>
+            <div class="welcome-text">
+                <h1>Lost & Found 🔍</h1>
+                <p style="color: var(--text-muted);">Helping the community find items</p>
+            </div>
+            <div class="search-container">
+                <input type="text" placeholder="Search items..." id="searchInput">
+            </div>
+            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+        </header>
+
+        <div class="lf-layout">
+            <aside>
+                <div class="report-card">
+                    <h3>Report Item</h3>
                     <form id="reportForm">
                         <select id="itemType" required>
-                            <option value="">Select type</option>
-                            <option value="lost">I lost something</option>
-                            <option value="found">I found something</option>
-                        </select>
-                        <input type="text" id="title" placeholder="Title (e.g., 'Black Phone')" required>
-                        <input type="text" id="category" placeholder="Category (e.g., 'Phone', 'Watch')" required>
-                        <textarea id="description" placeholder="Description (optional)" rows="3"></textarea>
-                        <input type="email" id="contactEmail" placeholder="Contact Email" required>
-                        <label for="images">Upload Images (up to 5):</label>
-                        <input type="file" id="images" accept="image/*" multiple>
-                        <button type="submit">Submit</button>
-                    </form>
-                </div>
-            </div>
-            <div class="list-section">
-                <div class="card">
-                    <h3>Browse Items</h3>
-                    <div class="filter-bar">
-                        <select id="filterType">
-                            <option value="">All types</option>
+                            <option value="">Status</option>
                             <option value="lost">Lost</option>
                             <option value="found">Found</option>
                         </select>
-                        <input type="text" id="filterCategory" placeholder="Filter by category (e.g., Phone)">
-                        <button id="applyFilter">Apply Filter</button>
-                        <button id="resetFilter">Reset</button>
-                    </div>
-                    <div id="itemsList"></div>
+                        <input type="text" id="title" placeholder="Item Name" required>
+                        <input type="text" id="category" placeholder="Category">
+                        <textarea id="description" placeholder="Details (Location, Time)" rows="3"></textarea>
+                        <button type="submit" class="btn-fresh">Post Report</button>
+                    </form>
                 </div>
-            </div>
-        </div>
-    </div>
+            </aside>
 
-    <!-- Modal for image preview -->
-    <div id="imageModal" class="modal">
-        <span class="close">&times;</span>
-        <img class="modal-content" id="modalImage">
-    </div>
+            <section id="itemsList">
+                <div class="item-card lost">
+                    <div class="status-badge">Lost</div>
+                    <h3>Keys with blue keychain</h3>
+                    <p style="color: var(--text-muted); margin-top: 10px;">Lost near LHC 102. Please contact me if found.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Dark Mode Logic
+        const themeBtn = document.getElementById('themeToggle');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
+        });
+
+        if(localStorage.getItem('uah-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeBtn.innerText = '☀️ Light Mode';
+        }
+
+        // Search Filter
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.item-card').forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(term) ? 'block' : 'none';
+            });
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/lost-found.js"></script>
