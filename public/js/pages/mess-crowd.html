@@ -3,67 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mess Crowd - UAH</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Mess Occupancy - UAH IITJ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* Additional styles for this page */
-        .occupancy-display {
+        /* Shared UI Variables */
+        :root {
+            --bg-app: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --accent: #4a90e2; 
+            --accent-secondary: #c49b3f;
+            --border-color: rgba(0, 0, 0, 0.05);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --radius: 24px;
+        }
+
+        body.dark-mode {
+            --bg-app: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #60a5fa;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            transition: background 0.4s ease;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 40px 20px;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+        }
+
+        .logo { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 40px; padding-left: 15px; }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: var(--card-bg);
+            color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main Content Styling */
+        .content {
+            margin-left: 280px;
+            padding: 40px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .theme-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+        }
+
+        /* Mess Occupancy Specific Styles */
+        .occupancy-card {
+            max-width: 600px;
+            margin: 40px auto;
             text-align: center;
-            margin: 30px 0;
+            padding: 50px 30px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
         }
+
         #colorIndicator {
-            width: 150px;
-            height: 150px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
-            margin: 20px auto;
-            transition: background-color 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .stats {
-            font-size: 1.2rem;
-            margin: 10px 0;
-        }
-        .stats span {
-            font-weight: bold;
-            color: #1a2b4c;
-        }
-        #simulateScan {
-            display: block;
             margin: 30px auto;
-            padding: 12px 30px;
-            font-size: 1.1rem;
+            transition: all 0.5s ease;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            background-color: #2ed573; /* Default Green */
+        }
+
+        .meal-badge {
+            background: var(--accent);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .btn-fresh {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-fresh:hover { transform: scale(1.05); }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .content { margin-left: 0; padding: 20px; }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="container">
-            <a href="/dashboard.html">Home</a>
-            <a href="/pages/mess-crowd.html">Mess Crowd</a>
-            <a href="/pages/lost-found.html">Lost & Found</a>
-            <a href="/pages/notifications.html">Notifications</a>
-            <a href="/pages/timetable-personal.html">My Timetable</a>
-            <a href="/pages/timetable-course.html">Course Timetable</a>
-            <a href="/pages/qr-tab.html">QR Codes</a>
-            <a href="/pages/bus-schedule.html">Bus</a>
-            <a href="/pages/mess-menu.html">Mess Menu</a>
-            <a href="/pages/phc-timetable.html">PHC</a>
-            <a href="/pages/restaurant-ordering.html">Order Food</a>
-            <button id="logout">Logout</button>
+
+    <nav class="sidebar">
+        <div class="logo">UAH IITJ</div>
+        <div class="nav-links">
+            <a href="/dashboard.html">🏠 Dashboard</a>
+            <a href="/pages/mess-crowd.html" class="active">🍽️ Mess Crowd</a>
+            <a href="/pages/notifications.html">📢 Notices</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
+            <a href="/pages/timetable-personal.html">📅 Timetable</a>
+            <a href="/pages/qr-tab.html">📱 QR Wallet</a>
         </div>
-    </div>
-    <div class="container">
-        <h1>Mess Crowd</h1>
-        <div class="card occupancy-display">
-            <div class="stats">
-                <p>Meal window: <span id="mealWindow">-</span></p>
-                <p>Current occupancy: <span id="occupancy">-</span> / <span id="capacity">-</span></p>
+    </nav>
+
+    <main class="content">
+        <header>
+            <div class="welcome-text">
+                <h1>Mess Occupancy 🍽️</h1>
+                <p style="color: var(--text-muted);">Real-time dining hall traffic</p>
             </div>
-            <div id="colorIndicator"></div>
-            <p id="statusText" style="font-weight: 500;"></p>
-            <button id="simulateScan">Simulate Check-in</button>
+            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+        </header>
+
+        <div class="occupancy-card">
+            <div class="meal-badge" id="mealWindow">Lunch Window</div>
+            <div id="colorIndicator">32%</div>
+            <div class="stats">
+                <h3 style="margin-bottom: 10px;">Current Status</h3>
+                <p style="color: var(--text-muted);">
+                    Occupancy: <span id="occupancy" style="color: var(--accent); font-weight: 700;">128</span> / <span id="capacity">400</span>
+                </p>
+            </div>
+            <button id="simulateScan" class="btn-fresh" style="margin-top: 30px;">Check In/Out</button>
         </div>
-    </div>
+    </main>
+
+    <script>
+        // Shared Theme Logic
+        const themeBtn = document.getElementById('themeToggle');
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
+        });
+
+        if(localStorage.getItem('uah-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            themeBtn.innerText = '☀️ Light Mode';
+        }
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/mess-crowd.js"></script>
 </body>
