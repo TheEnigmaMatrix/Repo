@@ -79,6 +79,21 @@
             box-shadow: var(--shadow);
         }
 
+        .nav-links a { position: relative; }
+        .nav-badge {
+            background: #e53e3e;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 6px;
+        }
+
         /* Main Content Styling */
         .content {
             margin-left: 280px;
@@ -144,6 +159,44 @@
         .tag-Mess { background: #fef3c7; color: #92400e; }
         .tag-PHC { background: #dcfce7; color: #166534; }
 
+        .email-notification-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .email-notification-card.unseen { border-left: 4px solid var(--accent); }
+        .email-notification-card .from-msg { font-weight: 600; color: var(--text-main); }
+        .email-notification-card .time { font-size: 0.85rem; color: var(--text-muted); }
+        .section-title { font-size: 1.1rem; margin-bottom: 16px; color: var(--text-main); }
+        .watched-sender-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .watched-sender-row input { padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); }
+        .btn-sm { padding: 8px 16px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; font-family: inherit; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-secondary { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+        .toast-popup {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--card-bg);
+            color: var(--text-main);
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            z-index: 9999;
+            max-width: 360px;
+            animation: toastIn 0.3s ease;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         /* Admin Management Card */
         .admin-card {
             background: var(--card-bg);
@@ -168,7 +221,7 @@
         <div class="nav-links">
             <a href="/dashboard.html">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
-            <a href="/pages/notifications.html" class="active">📢 Notice Board</a>
+            <a href="/pages/notifications.html" class="active">📢 Notice Board <span id="emailNotificationBadge" class="nav-badge" style="display:none">0</span></a>
             <a href="/pages/lost-found.html">🔍 Lost & Found</a>
             <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
             <a href="/pages/qr-tab.html">📱 QR Wallet</a>
@@ -188,12 +241,69 @@
         </header>
 
         <div id="adminSection" style="display: none;">
-            <div class="admin-card">
+            <div class="admin-card" id="adminFormContainer">
                 <h3 style="margin-bottom: 15px;">Post a New Notice</h3>
-                <p style="font-size: 0.9rem; color: var(--text-muted);">Administrators can broadcast announcements here.</p>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Administrators can broadcast announcements here.</p>
+                <form id="notificationForm">
+                    <input type="text" id="title" placeholder="Title" required style="padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); width: 100%; max-width: 400px; margin-bottom: 10px;">
+                    <select id="category" style="padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); margin-bottom: 10px;">
+                        <option value="Academic">Academic</option>
+                        <option value="Clubs">Clubs</option>
+                        <option value="Mess">Mess</option>
+                        <option value="PHC">PHC</option>
+                        <option value="General">General</option>
+                    </select>
+                    <textarea id="content" placeholder="Content" required rows="3" style="padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); width: 100%; max-width: 500px; margin-bottom: 12px;"></textarea>
+                    <button type="submit" class="btn-sm btn-primary">Post notice</button>
+                </form>
             </div>
         </div>
 
+        <!-- Email notifications from Gmail -->
+        <div class="admin-card" style="margin-bottom: 24px;">
+            <h3 class="section-title">📧 Email notifications</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">Connect your Gmail (same as your student login) and choose which senders to watch. You’ll get a notification when you receive an email from them.</p>
+            <div id="gmailConnectBlock">
+                <button type="button" class="btn-sm btn-primary" id="connectGmailBtn">Connect Gmail</button>
+            </div>
+            <div id="gmailConnectedBlock" style="display: none;">
+                <p style="color: var(--accent); font-weight: 600; margin-bottom: 12px;">✓ Gmail connected</p>
+                <div class="section-title">Watched senders</div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Add email addresses (e.g. alex324@iitj.ac.in) and a display name (e.g. Alex). You’ll see “You received an email from Alex” with timestamp.</p>
+                <div class="watched-sender-row">
+                    <input type="email" id="senderEmail" placeholder="e.g. alex324@iitj.ac.in" style="width: 220px;">
+                    <input type="text" id="senderDisplayName" placeholder="Display name (e.g. Alex)" style="width: 160px;">
+                    <button type="button" class="btn-sm btn-primary" id="addSenderBtn">Add</button>
+                </div>
+                <div id="watchedSendersList" style="margin-top: 12px;"></div>
+                <div style="margin-top: 16px;">
+                    <button type="button" class="btn-sm btn-secondary" id="syncGmailBtn">Sync inbox now</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card" style="margin-bottom: 24px;">
+            <h3 class="section-title">Inbox alerts</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">Notifications when you receive an email from a watched sender.</p>
+            <div style="margin-bottom: 12px;">
+                <button type="button" class="btn-sm btn-secondary" id="markAllSeenBtn">Mark all as seen</button>
+            </div>
+            <div id="emailNotificationsList"></div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <span style="margin-right: 8px;">Filter:</span>
+            <select id="filterCategory" style="padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main);">
+                <option value="">All</option>
+                <option value="Academic">Academic</option>
+                <option value="Clubs">Clubs</option>
+                <option value="Mess">Mess</option>
+                <option value="PHC">PHC</option>
+                <option value="General">General</option>
+            </select>
+            <button type="button" class="btn-sm btn-secondary" id="applyFilter" style="margin-left: 8px;">Apply</button>
+            <button type="button" class="btn-sm btn-secondary" id="resetFilter" style="margin-left: 4px;">Reset</button>
+        </div>
         <div id="notificationsList">
             <div class="notice-card">
                 <div class="dept-tag tag-Academic">Academic</div>

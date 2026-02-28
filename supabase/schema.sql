@@ -34,3 +34,38 @@ CREATE TABLE bus_schedule_image (
 );
 -- Optional: insert initial row so upsert works
 INSERT INTO bus_schedule_image (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- Gmail integration: OAuth tokens (one row per user)
+CREATE TABLE gmail_tokens (
+  user_id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  expiry_date BIGINT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Senders the user wants to get notified about (e.g. alex324@iitj.ac.in -> "Alex")
+CREATE TABLE gmail_watched_senders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  sender_email TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, sender_email)
+);
+
+-- Email notifications created when a watched sender sends an email to the user
+CREATE TABLE email_notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  from_email TEXT NOT NULL,
+  from_name TEXT NOT NULL,
+  gmail_message_id TEXT,
+  subject TEXT,
+  received_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  seen BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, gmail_message_id)
+);
+CREATE INDEX idx_email_notifications_user_seen ON email_notifications(user_id, seen);
