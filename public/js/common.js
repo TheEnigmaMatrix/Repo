@@ -26,9 +26,29 @@
         });
     }
 
+    function normalizeNavLinks() {
+        try {
+            var path = window.location.pathname || '';
+            var base = '';
+            var idx = path.indexOf('/pages/');
+            if (idx !== -1) base = path.slice(0, idx);
+            else if (path.endsWith('/dashboard.html')) base = path.slice(0, -('/dashboard.html'.length)) || '';
+            else if (path.endsWith('/index.html')) base = path.slice(0, -('/index.html'.length)) || '';
+            document.querySelectorAll('a[href^="/"]').forEach(function (a) {
+                var href = a.getAttribute('href') || '';
+                if (!href || href.startsWith('/api/')) return;
+                if (base) a.setAttribute('href', base + href);
+            });
+        } catch (_) { /* noop */ }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initThemeToggle);
+        document.addEventListener('DOMContentLoaded', function () {
+            initThemeToggle();
+            normalizeNavLinks();
+        });
     } else {
         initThemeToggle();
+        normalizeNavLinks();
     }
 })();

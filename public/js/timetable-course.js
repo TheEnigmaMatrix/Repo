@@ -16,7 +16,9 @@ async function loadCourseTimetableImage() {
     const data = await res.json();
     if (res.ok && data.imageUrl) {
       container.className = '';
-      container.innerHTML = `<img src="${data.imageUrl}" alt="Course timetable" loading="lazy">`;
+      var ts = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
+      var src = data.imageUrl + (data.imageUrl.includes('?') ? '&' : '?') + 't=' + ts;
+      container.innerHTML = `<img src="${src}" alt="Course timetable" loading="lazy">`;
     } else {
       container.className = 'empty';
       container.textContent = 'No course timetable image uploaded yet. Upload one above to save it forever.';
