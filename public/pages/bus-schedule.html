@@ -253,15 +253,13 @@
             <button class="theme-btn" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span></button>
         </header>
 
-        <div id="adminSection" style="display: none;">
-            <div class="admin-card">
-                <h3>Upload Bus Schedule Image</h3>
-                <p class="hint">Upload an image containing the bus schedule (e.g. timetable poster). Students will see this when they open Bus Schedule.</p>
-                <form id="uploadScheduleForm">
-                    <input type="file" id="scheduleImageInput" name="scheduleImage" accept="image/*" required>
-                    <button type="submit" class="submit-btn">Upload schedule image</button>
-                </form>
-            </div>
+        <div class="admin-card">
+            <h3>Upload My Bus Schedule Image</h3>
+            <p class="hint">Upload your bus schedule image once, and you’ll be able to view it here anytime you log in.</p>
+            <form id="uploadScheduleForm">
+                <input type="file" id="scheduleImageInput" name="image" accept="image/*" required>
+                <button type="submit" class="submit-btn">Upload</button>
+            </form>
         </div>
 
         <div id="busScheduleList">
@@ -271,6 +269,7 @@
 
     <script src="/js/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
     <script src="/js/bus-schedule.js"></script>
 </body>
 </html>

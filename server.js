@@ -24,12 +24,18 @@ const authenticate = async (req, res, next) => {
   if (error) return res.status(401).json({ error: 'Invalid token' });
 
   req.user = user;
+  req.token = token;
+  // Supabase client scoped to the logged-in user (so RLS + storage policies work).
+  req.supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { headers: { Authorization: `Bearer ${token}` } }
+  });
   next();
 };
 
 // ========== HELPER FUNCTIONS ==========
-async function isAdmin(userId) {
-  const { data, error } = await supabase
+async function isAdmin(supabaseClient, userId) {
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('role')
     .eq('id', userId)
@@ -84,7 +90,7 @@ app.post('/api/mess/scan', authenticate, async (req, res) => {
     else if (hour >= 12 && hour < 14) mealWindow = 'lunch';
     else if (hour >= 19 && hour < 21) mealWindow = 'dinner';
     else return res.status(400).json({ error: 'No active meal window' });
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('mess_scans')
       .insert({ user_id: req.user.id, meal_window: mealWindow });
     if (error) throw error;
@@ -97,13 +103,13 @@ app.post('/api/mess/scan', authenticate, async (req, res) => {
 // ----- Lost & Found -----
 const upload = multer({ storage: multer.memoryStorage() });
 
-const uploadImage = async (file, userId, bucket = 'lost-found') => {
+const uploadImage = async (supabaseClient, file, userId, bucket = 'lost-found') => {
   const fileName = `${userId}/${uuidv4()}-${file.originalname}`;
-  const { error } = await supabase.storage
+  const { error } = await supabaseClient.storage
     .from(bucket)
     .upload(fileName, file.buffer, { contentType: file.mimetype });
   if (error) throw error;
-  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
+  const { data: { publicUrl } } = supabaseClient.storage.from(bucket).getPublicUrl(fileName);
   return publicUrl;
 };
 
@@ -120,12 +126,12 @@ app.post('/api/lost-found', authenticate, upload.array('images', 5), async (req,
     const imageUrls = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const url = await uploadImage(file, req.user.id, 'lost-found');
+        const url = await uploadImage(req.supabase, file, req.user.id, 'lost-found');
         imageUrls.push(url);
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('lost_found_items')
       .insert({
         type,
@@ -145,10 +151,11 @@ app.post('/api/lost-found', authenticate, upload.array('images', 5), async (req,
   }
 });
 
-app.get('/api/lost-found', async (req, res) => {
+// Visible to all LOGGED-IN users (shared feed)
+app.get('/api/lost-found', authenticate, async (req, res) => {
   try {
     const { type, category } = req.query;
-    let query = supabase.from('lost_found_items').select('*');
+    let query = req.supabase.from('lost_found_items').select('*');
     if (type) query = query.eq('type', type);
     if (category) query = query.eq('category', category);
     const { data, error } = await query.order('created_at', { ascending: false });
@@ -159,10 +166,10 @@ app.get('/api/lost-found', async (req, res) => {
   }
 });
 
-app.get('/api/lost-found/:id', async (req, res) => {
+app.get('/api/lost-found/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('lost_found_items')
       .select('*')
       .eq('id', id)
@@ -177,14 +184,14 @@ app.get('/api/lost-found/:id', async (req, res) => {
 app.delete('/api/lost-found/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data: item, error: fetchError } = await supabase
+    const { data: item, error: fetchError } = await req.supabase
       .from('lost_found_items')
       .select('user_id, images')
       .eq('id', id)
       .single();
     if (fetchError) throw fetchError;
 
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (item.user_id !== req.user.id && !admin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
@@ -192,17 +199,78 @@ app.delete('/api/lost-found/:id', authenticate, async (req, res) => {
     if (item.images && item.images.length > 0) {
       for (const url of item.images) {
         const path = url.split('/').slice(-2).join('/');
-        await supabase.storage.from('lost-found').remove([path]);
+        await req.supabase.storage.from('lost-found').remove([path]);
       }
     }
 
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('lost_found_items')
       .delete()
       .eq('id', id);
     if (error) throw error;
     res.json({ message: 'Item deleted' });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ----- Student uploads (per-user, saved forever) -----
+// Table required: student_uploads (user_id uuid, upload_type text, file_path text, updated_at timestamptz, created_at timestamptz)
+// Unique constraint required: unique(user_id, upload_type)
+// Storage bucket required: student-uploads (public recommended for simple <img src>)
+
+const ALLOWED_UPLOAD_TYPES = new Set(['academic-calendar', 'bus-schedule', 'course-timetable']);
+
+app.get('/api/student-uploads/:type', authenticate, async (req, res) => {
+  try {
+    const type = req.params.type;
+    if (!ALLOWED_UPLOAD_TYPES.has(type)) return res.status(400).json({ error: 'Invalid upload type' });
+
+    const { data, error } = await req.supabase
+      .from('student_uploads')
+      .select('file_path, updated_at')
+      .eq('user_id', req.user.id)
+      .eq('upload_type', type)
+      .maybeSingle();
+    if (error) throw error;
+
+    if (!data?.file_path) return res.json({ imageUrl: null, updatedAt: null });
+    const { data: { publicUrl } } = req.supabase.storage.from('student-uploads').getPublicUrl(data.file_path);
+    res.json({ imageUrl: publicUrl, updatedAt: data.updated_at || null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/student-uploads/:type', authenticate, upload.single('image'), async (req, res) => {
+  try {
+    const type = req.params.type;
+    if (!ALLOWED_UPLOAD_TYPES.has(type)) return res.status(400).json({ error: 'Invalid upload type' });
+
+    if (!req.file || !req.file.mimetype?.startsWith('image/')) {
+      return res.status(400).json({ error: 'Please upload an image file (PNG/JPG/WebP)' });
+    }
+
+    const ext = (req.file.originalname.split('.').pop() || 'png').toLowerCase();
+    const filePath = `${req.user.id}/${type}.${ext}`;
+
+    const { error: uploadError } = await req.supabase.storage
+      .from('student-uploads')
+      .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+    if (uploadError) throw uploadError;
+
+    const { error: upsertError } = await req.supabase
+      .from('student_uploads')
+      .upsert(
+        { user_id: req.user.id, upload_type: type, file_path: filePath, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,upload_type' }
+      );
+    if (upsertError) throw upsertError;
+
+    const { data: { publicUrl } } = req.supabase.storage.from('student-uploads').getPublicUrl(filePath);
+    res.json({ imageUrl: publicUrl });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -223,13 +291,13 @@ app.get('/api/notifications', async (req, res) => {
 
 app.post('/api/notifications', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { title, content, category } = req.body;
     if (!title || !content) return res.status(400).json({ error: 'Title and content required' });
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('notifications')
       .insert({ title, content, category, created_by: req.user.id })
       .select();
@@ -242,11 +310,11 @@ app.post('/api/notifications', authenticate, async (req, res) => {
 
 app.delete('/api/notifications/:id', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { id } = req.params;
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('notifications')
       .delete()
       .eq('id', id);
@@ -260,7 +328,7 @@ app.delete('/api/notifications/:id', authenticate, async (req, res) => {
 // ----- Personal Timetable (weekly and one-time events) -----
 app.get('/api/timetable/personal', authenticate, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('personal_timetables')
       .select('*')
       .eq('user_id', req.user.id)
@@ -289,7 +357,7 @@ app.post('/api/timetable/personal', authenticate, async (req, res) => {
     }
 
     // Check for overlaps
-    let query = supabase
+    let query = req.supabase
       .from('personal_timetables')
       .select('*')
       .eq('user_id', req.user.id);
@@ -325,7 +393,7 @@ app.post('/api/timetable/personal', authenticate, async (req, res) => {
       insertData.day_of_week = null;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('personal_timetables')
       .insert(insertData)
       .select();
@@ -339,7 +407,7 @@ app.post('/api/timetable/personal', authenticate, async (req, res) => {
 app.delete('/api/timetable/personal/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data: event, error: fetchError } = await supabase
+    const { data: event, error: fetchError } = await req.supabase
       .from('personal_timetables')
       .select('user_id')
       .eq('id', id)
@@ -348,7 +416,7 @@ app.delete('/api/timetable/personal/:id', authenticate, async (req, res) => {
     if (event.user_id !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized' });
     }
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('personal_timetables')
       .delete()
       .eq('id', id);
@@ -382,7 +450,7 @@ app.get('/api/academic-calendar', async (req, res) => {
 
 app.post('/api/academic-calendar', authenticate, upload.single('pdf'), async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { title } = req.body;
@@ -392,12 +460,12 @@ app.post('/api/academic-calendar', authenticate, upload.single('pdf'), async (re
 
     const file = req.file;
     const fileName = `academic-calendar/${uuidv4()}-${file.originalname}`;
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await req.supabase.storage
       .from('academic-calendars')
       .upload(fileName, file.buffer, { contentType: file.mimetype });
     if (uploadError) throw uploadError;
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('academic_calendars')
       .insert({
         title,
@@ -407,7 +475,7 @@ app.post('/api/academic-calendar', authenticate, upload.single('pdf'), async (re
       .select();
     if (error) throw error;
 
-    const { data: { publicUrl } } = supabase.storage.from('academic-calendars').getPublicUrl(fileName);
+    const { data: { publicUrl } } = req.supabase.storage.from('academic-calendars').getPublicUrl(fileName);
     res.json({ ...data[0], file_url: publicUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -417,7 +485,7 @@ app.post('/api/academic-calendar', authenticate, upload.single('pdf'), async (re
 // ----- QR Codes ----- (if you have this feature, include; otherwise skip)
 app.get('/api/qrcodes', authenticate, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('user_qr_codes')
       .select('*')
       .eq('user_id', req.user.id);
@@ -433,13 +501,13 @@ app.post('/api/qrcodes', authenticate, upload.single('qrImage'), async (req, res
     const { name } = req.body;
     const file = req.file;
     const fileName = `qr/${req.user.id}/${uuidv4()}-${file.originalname}`;
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await req.supabase.storage
       .from('qr-codes')
       .upload(fileName, file.buffer, { contentType: file.mimetype });
     if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from('qr-codes').getPublicUrl(fileName);
+    const { data: { publicUrl } } = req.supabase.storage.from('qr-codes').getPublicUrl(fileName);
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('user_qr_codes')
       .insert({ user_id: req.user.id, name, file_path: publicUrl })
       .select();
@@ -453,7 +521,7 @@ app.post('/api/qrcodes', authenticate, upload.single('qrImage'), async (req, res
 app.delete('/api/qrcodes/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { data: qr, error: fetchError } = await supabase
+    const { data: qr, error: fetchError } = await req.supabase
       .from('user_qr_codes')
       .select('file_path')
       .eq('id', id)
@@ -462,9 +530,9 @@ app.delete('/api/qrcodes/:id', authenticate, async (req, res) => {
     if (fetchError) throw fetchError;
 
     const fileName = qr.file_path.split('/').slice(-2).join('/');
-    await supabase.storage.from('qr-codes').remove([fileName]);
+    await req.supabase.storage.from('qr-codes').remove([fileName]);
 
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('user_qr_codes')
       .delete()
       .eq('id', id);
@@ -495,7 +563,7 @@ app.get('/api/bus-schedule/image', async (req, res) => {
 
 app.post('/api/bus-schedule/image', authenticate, upload.single('scheduleImage'), async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     if (!req.file || !req.file.mimetype.startsWith('image/')) {
@@ -504,13 +572,13 @@ app.post('/api/bus-schedule/image', authenticate, upload.single('scheduleImage')
 
     const ext = req.file.originalname.split('.').pop() || 'png';
     const fileName = `current.${ext}`;
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await req.supabase.storage
       .from('bus-schedule')
       .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
     if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from('bus-schedule').getPublicUrl(fileName);
+    const { data: { publicUrl } } = req.supabase.storage.from('bus-schedule').getPublicUrl(fileName);
 
-    const { error: dbError } = await supabase
+    const { error: dbError } = await req.supabase
       .from('bus_schedule_image')
       .upsert(
         { id: 1, image_url: publicUrl, updated_at: new Date().toISOString(), updated_by: req.user.id },
@@ -541,14 +609,14 @@ app.get('/api/mess-menu', async (req, res) => {
 
 app.post('/api/mess-menu', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { mealType, dayOfWeek, items, category } = req.body;
     if (!mealType || dayOfWeek === undefined || !items || !Array.isArray(items)) {
       return res.status(400).json({ error: 'Missing fields' });
     }
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('mess_menus')
       .insert({
         meal_type: mealType,
@@ -566,11 +634,11 @@ app.post('/api/mess-menu', authenticate, async (req, res) => {
 
 app.delete('/api/mess-menu/:id', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { id } = req.params;
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('mess_menus')
       .delete()
       .eq('id', id);
@@ -598,14 +666,14 @@ app.get('/api/phc-timetable', async (req, res) => {
 
 app.post('/api/phc-timetable', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { doctorName, specialization, dayOfWeek, startTime, endTime } = req.body;
     if (!doctorName || dayOfWeek === undefined || !startTime || !endTime) {
       return res.status(400).json({ error: 'Missing fields' });
     }
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('phc_timetable')
       .insert({
         doctor_name: doctorName,
@@ -624,11 +692,11 @@ app.post('/api/phc-timetable', authenticate, async (req, res) => {
 
 app.delete('/api/phc-timetable/:id', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { id } = req.params;
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('phc_timetable')
       .delete()
       .eq('id', id);
@@ -655,13 +723,13 @@ app.get('/api/restaurants', async (req, res) => {
 
 app.post('/api/restaurants', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { name, url, logo_url } = req.body;
     if (!name || !url) return res.status(400).json({ error: 'Name and URL required' });
 
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('restaurants')
       .insert({ name, url, logo_url: logo_url || null })
       .select();
@@ -674,11 +742,11 @@ app.post('/api/restaurants', authenticate, async (req, res) => {
 
 app.delete('/api/restaurants/:id', authenticate, async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
+    const admin = await isAdmin(req.supabase, req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { id } = req.params;
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('restaurants')
       .delete()
       .eq('id', id);
