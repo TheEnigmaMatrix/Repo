@@ -29,17 +29,28 @@ if (loginEmailEl) {
 }
 
 // Login: if email is filled, always open dashboard (no password check).
-document.getElementById('login-form').addEventListener('submit', function (e) {
+document.getElementById('login-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     const email = (document.getElementById('login-email').value || '').trim();
-    if (!email) {
-        alert('Please enter your email.');
+    const password = (document.getElementById('login-password').value || '').trim();
+    if (!email || !password) {
+        alert('Please enter your email and password.');
         return;
     }
-    localStorage.setItem('uah-login-email', email);
-    sessionStorage.setItem('uah-just-logged-in', '1');
-    var base = window.location.pathname.replace(/\/index\.html?$/i, '').replace(/\/?$/, '') || '';
-    window.location.replace(base + '/dashboard.html');
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert(error.message || 'Login failed');
+            return;
+        }
+        if (data?.user?.email) localStorage.setItem('uah-login-email', data.user.email);
+        sessionStorage.setItem('uah-just-logged-in', '1');
+        var base = window.location.pathname.replace(/\/index\.html?$/i, '').replace(/\/?$/, '') || '';
+        window.location.replace(base + '/dashboard.html');
+    } catch (err) {
+        console.error(err);
+        alert('Login failed. Please try again.');
+    }
 });
 
 // Signup

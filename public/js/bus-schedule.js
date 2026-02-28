@@ -48,7 +48,7 @@ async function loadBusScheduleImage() {
         if (res.ok && data.imageUrl) {
             container.innerHTML = `
                 <div class="schedule-image-card">
-                    <img src="${data.imageUrl}" alt="Bus schedule" loading="lazy">
+                    <img src="${data.imageUrl}${data.imageUrl.includes('?') ? '&' : '?'}t=${Date.now()}" alt="Bus schedule" loading="lazy">
                 </div>
             `;
         } else {
