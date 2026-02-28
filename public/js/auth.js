@@ -1,6 +1,6 @@
-// Initialize Supabase client
-const SUPABASE_URL = 'https://zvcqzevzxnqllumwqpxs.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2Y3F6ZXZ6eG5xbGx1bXdxcHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTY2MTgsImV4cCI6MjA4Nzc5MjYxOH0.Z3d98gsqhid1pC6hnaMPpnPpNmcR0D2GC-2xUusXuBs';
+// Supabase initialization (replace with your actual project URL and anon key)
+const SUPABASE_URL = 'https://your-project.supabase.co';
+const SUPABASE_ANON_KEY = 'your-anon-key';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Login
@@ -23,15 +23,23 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
     const fullName = document.getElementById('signup-name').value;
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
+    const adminKey = document.getElementById('signup-admin-key').value;
+
+    // Prepare metadata
+    const metadata = { full_name: fullName };
+    if (adminKey) {
+        metadata.admin_key = adminKey; // will be checked by the database trigger
+    }
 
     const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } }
+        options: { data: metadata }
     });
     if (error) {
         alert(error.message);
     } else {
-        alert('Check your email for confirmation!');
+        alert('Signup successful! Please check your email for confirmation.');
+        // Optionally redirect to login or stay
     }
 });
