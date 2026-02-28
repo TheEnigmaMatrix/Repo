@@ -1,17 +1,8 @@
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Logout button
-document.getElementById('logout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/';
-});
+const supabase = window.uahSupabase;
 
 // Helper to get auth token
 async function getToken() {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token;
+    return window.uahAuth?.getToken ? await window.uahAuth.getToken() : null;
 }
 
 // Current user info (for delete permissions)
@@ -44,7 +35,7 @@ document.getElementById('foundForm').addEventListener('submit', async (e) => {
         if (res.ok) {
             alert('Found item reported successfully!');
             e.target.reset();
-            loadFoundItems(); // refresh the found items list
+            loadItems(); // refresh the shared feed
         } else {
             alert(data.error);
         }
@@ -76,6 +67,7 @@ document.getElementById('lostForm').addEventListener('submit', async (e) => {
         if (res.ok) {
             alert('Lost item reported successfully!');
             e.target.reset();
+            loadItems(); // refresh the shared feed
         } else {
             alert(data.error);
         }
@@ -85,46 +77,59 @@ document.getElementById('lostForm').addEventListener('submit', async (e) => {
     }
 });
 
-// Load found items (type = 'found') with optional category filter
-async function loadFoundItems() {
+// Load items (lost + found) for all logged-in users
+async function loadItems() {
     const category = document.getElementById('categoryFilter').value;
-    let url = '/api/lost-found?type=found';
-    if (category) url += `&category=${encodeURIComponent(category)}`;
+    let url = '/api/lost-found';
+    if (category) url += `?category=${encodeURIComponent(category)}`;
 
     try {
-        const res = await fetch(url);
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
         const items = await res.json();
-        displayFoundItems(items);
+        displayItems(items);
     } catch (err) {
         console.error(err);
     }
 }
 
-// Display found items in the list
-function displayFoundItems(items) {
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text ?? '';
+    return div.innerHTML;
+}
+
+// Display items in the list (lost + found)
+function displayItems(items) {
     const container = document.getElementById('foundItemsList');
     if (items.length === 0) {
-        container.innerHTML = '<p>No found items yet.</p>';
+        container.innerHTML = '<p style="color: var(--text-muted);">No items yet.</p>';
         return;
     }
-    container.innerHTML = items.map(item => `
-        <div class="item-card found" data-id="${item.id}">
-            <h4>${item.title}</h4>
-            <p><strong>Category:</strong> ${item.category}</p>
-            ${item.description ? `<p><strong>Description:</strong> ${item.description}</p>` : ''}
-            ${item.images && item.images.length > 0 ? `
-                <div class="item-images">
-                    ${item.images.map(img => `<img src="${img}" alt="Item image" onclick="openModal('${img}')">`).join('')}
+    container.innerHTML = items.map(item => {
+        const type = item.type === 'lost' ? 'lost' : 'found';
+        const badge = type === 'lost' ? 'LOST' : 'FOUND';
+        return `
+            <div class="item-card ${type}" data-id="${escapeHtml(item.id)}">
+                <div class="status-badge">${badge}</div>
+                <h4>${escapeHtml(item.title)}</h4>
+                <p><strong>Category:</strong> ${escapeHtml(item.category)}</p>
+                ${item.description ? `<p><strong>Description:</strong> ${escapeHtml(item.description)}</p>` : ''}
+                ${item.images && item.images.length > 0 ? `
+                    <div class="item-images">
+                        ${item.images.map(img => `<img src="${img}" alt="Item image" onclick="openModal('${img}')">`).join('')}
+                    </div>
+                ` : ''}
+                <div class="contact-info">
+                    <strong>Contact:</strong> ${escapeHtml(item.contact_info)}
                 </div>
-            ` : ''}
-            <div class="contact-info">
-                <strong>Contact:</strong> ${item.contact_info}
+                ${currentUser && item.user_id === currentUser.id ? `
+                    <button class="delete-btn" onclick="deleteItem('${escapeHtml(item.id)}')">Delete</button>
+                ` : ''}
             </div>
-            ${currentUser && item.user_id === currentUser.id ? `
-                <button class="delete-btn" onclick="deleteItem('${item.id}')">Delete</button>
-            ` : ''}
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Delete item (only owner)
@@ -139,7 +144,7 @@ window.deleteItem = async function(id) {
         });
         if (res.ok) {
             alert('Item deleted');
-            loadFoundItems(); // refresh list
+            loadItems(); // refresh list
         } else {
             const data = await res.json();
             alert(data.error);
@@ -167,11 +172,11 @@ window.onclick = function(event) {
 };
 
 // Filter buttons
-document.getElementById('applyFilter').addEventListener('click', loadFoundItems);
+document.getElementById('applyFilter').addEventListener('click', loadItems);
 document.getElementById('resetFilter').addEventListener('click', () => {
     document.getElementById('categoryFilter').value = '';
-    loadFoundItems();
+    loadItems();
 });
 
 // Initial load
-loadFoundItems();
+loadItems();

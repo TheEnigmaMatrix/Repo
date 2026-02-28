@@ -1,40 +1,11 @@
-const SUPABASE_URL = 'https://zvcqzevzxnqllumwqpxs.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2Y3F6ZXZ6eG5xbGx1bXdxcHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTY2MTgsImV4cCI6MjA4Nzc5MjYxOH0.Z3d98gsqhid1pC6hnaMPpnPpNmcR0D2GC-2xUusXuBs';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.uahSupabase;
 
-// Logout
-document.getElementById('logout')?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/';
-});
-
-// Helper to get auth token
 async function getToken() {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token;
+    return window.uahAuth?.getToken ? await window.uahAuth.getToken() : null;
 }
 
-// Current user and admin status
-let isAdminUser = false;
-
-// Check login and admin status
-supabase.auth.getUser().then(async ({ data: { user } }) => {
-    if (!user) {
-        window.location.href = '/';
-        return;
-    }
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-    if (profile) {
-        isAdminUser = profile.role === 'admin';
-        if (isAdminUser) {
-            const el = document.getElementById('adminSection');
-            if (el) el.style.display = 'block';
-        }
-    }
+// Ensure logged in and then load user's saved image
+window.uahAuth?.requireUser?.().then(() => {
     loadBusScheduleImage();
 });
 
@@ -43,7 +14,12 @@ async function loadBusScheduleImage() {
     const container = document.getElementById('busScheduleList');
     if (!container) return;
     try {
-        const res = await fetch('/api/bus-schedule/image');
+        const token = await getToken();
+        if (!token) return;
+
+        const res = await fetch('/api/student-uploads/bus-schedule', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
         const data = await res.json();
         if (res.ok && data.imageUrl) {
             container.innerHTML = `
@@ -52,7 +28,7 @@ async function loadBusScheduleImage() {
                 </div>
             `;
         } else {
-            container.innerHTML = '<div class="no-schedule">No bus schedule image uploaded yet. Check back later or ask an admin to upload one.</div>';
+            container.innerHTML = '<div class="no-schedule">No bus schedule image uploaded yet. Upload one above to save it forever.</div>';
         }
     } catch (err) {
         console.error(err);
@@ -60,13 +36,9 @@ async function loadBusScheduleImage() {
     }
 }
 
-// Admin: upload bus schedule image
+// Student: upload bus schedule image (saved to your account)
 document.getElementById('uploadScheduleForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!isAdminUser) {
-        alert('You are not authorized.');
-        return;
-    }
     const token = await getToken();
     if (!token) return;
 
@@ -82,10 +54,10 @@ document.getElementById('uploadScheduleForm')?.addEventListener('submit', async 
     }
 
     const formData = new FormData();
-    formData.append('scheduleImage', file);
+    formData.append('image', file);
 
     try {
-        const res = await fetch('/api/bus-schedule/image', {
+        const res = await fetch('/api/student-uploads/bus-schedule', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -94,7 +66,7 @@ document.getElementById('uploadScheduleForm')?.addEventListener('submit', async 
         });
         const data = await res.json();
         if (res.ok) {
-            alert('Bus schedule image uploaded successfully.');
+            alert('Bus schedule image saved.');
             fileInput.value = '';
             loadBusScheduleImage();
         } else {

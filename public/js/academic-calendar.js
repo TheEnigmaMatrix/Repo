@@ -2,38 +2,38 @@ async function getToken() {
   return window.uahAuth?.getToken ? await window.uahAuth.getToken() : null;
 }
 
-async function loadCourseTimetableImage() {
-  const container = document.getElementById('courseTimetableDisplay');
+async function loadAcademicCalendarImage() {
+  const container = document.getElementById('academicCalendarDisplay');
   if (!container) return;
 
   try {
     const token = await getToken();
     if (!token) return;
 
-    const res = await fetch('/api/student-uploads/course-timetable', {
+    const res = await fetch('/api/student-uploads/academic-calendar', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
     if (res.ok && data.imageUrl) {
       container.className = '';
-      container.innerHTML = `<img src="${data.imageUrl}" alt="Course timetable" loading="lazy">`;
+      container.innerHTML = `<img src="${data.imageUrl}" alt="Academic calendar" loading="lazy">`;
     } else {
       container.className = 'empty';
-      container.textContent = 'No course timetable image uploaded yet. Upload one above to save it forever.';
+      container.textContent = 'No academic calendar image uploaded yet. Upload one above to save it forever.';
     }
   } catch (err) {
     console.error(err);
     container.className = 'empty';
-    container.textContent = 'Unable to load course timetable. Please try again later.';
+    container.textContent = 'Unable to load academic calendar. Please try again later.';
   }
 }
 
-document.getElementById('uploadCourseTimetableForm')?.addEventListener('submit', async (e) => {
+document.getElementById('uploadAcademicCalendarForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const token = await getToken();
   if (!token) return;
 
-  const fileInput = document.getElementById('courseTimetableImageInput');
+  const fileInput = document.getElementById('academicCalendarImageInput');
   if (!fileInput?.files?.length) return alert('Please select an image file.');
   const file = fileInput.files[0];
   if (!file.type?.startsWith('image/')) return alert('Please select an image file (PNG/JPG/WebP).');
@@ -42,16 +42,16 @@ document.getElementById('uploadCourseTimetableForm')?.addEventListener('submit',
   formData.append('image', file);
 
   try {
-    const res = await fetch('/api/student-uploads/course-timetable', {
+    const res = await fetch('/api/student-uploads/academic-calendar', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData
     });
     const data = await res.json();
     if (res.ok) {
-      alert('Course timetable image saved.');
+      alert('Academic calendar image saved.');
       fileInput.value = '';
-      loadCourseTimetableImage();
+      loadAcademicCalendarImage();
     } else {
       alert(data.error || 'Upload failed');
     }
@@ -61,8 +61,7 @@ document.getElementById('uploadCourseTimetableForm')?.addEventListener('submit',
   }
 });
 
-
-
 window.uahAuth?.requireUser?.().then(() => {
-  loadCourseTimetableImage();
+  loadAcademicCalendarImage();
 });
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Timetable - UAH IITJ</title>
+    <title>Academic Calendar - UAH IITJ</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,6 +13,7 @@
             --text-main: #2d3748;
             --text-muted: #718096;
             --accent: #4a90e2;
+            --accent-secondary: #c49b3f;
             --border-color: rgba(0, 0, 0, 0.05);
             --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
             --radius: 24px;
@@ -35,41 +36,45 @@
         .nav-links a:hover, .nav-links a.active { background: var(--card-bg); color: var(--accent); box-shadow: var(--shadow); }
         #logout { margin-top: auto; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 12px; border-radius: 16px; cursor: pointer; }
         .content { margin-left: 280px; padding: 40px; width: 100%; max-width: 1200px; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 15px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
         .theme-btn { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; color: var(--text-main); box-shadow: var(--shadow); }
         .upload-card {
             background: var(--card-bg);
             padding: 25px;
-            border-radius: 24px;
+            border-radius: var(--radius);
             box-shadow: var(--shadow);
-            margin-bottom: 30px;
             border: 1px solid var(--border-color);
+            margin-bottom: 25px;
         }
-        .upload-card input, .upload-card button {
+        .upload-card h3 { margin-bottom: 10px; }
+        .upload-card .hint { color: var(--text-muted); margin-bottom: 15px; }
+        .upload-card input[type="file"] {
             width: 100%;
             padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 12px;
+            border-radius: 15px;
             border: 1px solid var(--border-color);
             background: var(--bg-app);
             color: var(--text-main);
+            margin-bottom: 12px;
+        }
+        .upload-card button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
         }
         .image-view {
             background: var(--card-bg);
-            padding: 30px;
-            border-radius: 24px;
+            padding: 20px;
+            border-radius: var(--radius);
             box-shadow: var(--shadow);
-            text-align: center;
+            border: 1px solid var(--border-color);
         }
-        .image-view img {
-            width: 100%;
-            height: auto;
-            border-radius: 16px;
-            margin-top: 20px;
-            max-height: 80vh;
-            object-fit: contain;
-        }
-        .empty { color: var(--text-muted); padding: 40px; }
+        .image-view img { width: 100%; height: auto; display: block; border-radius: 16px; max-height: 80vh; object-fit: contain; }
+        .empty { color: var(--text-muted); padding: 30px; text-align: center; }
         @media (max-width: 900px) {
             .sidebar { display: none; }
             .content { margin-left: 0; padding: 20px; }
@@ -88,8 +93,8 @@
             <a href="/pages/notifications.html">📢 Notices</a>
             <a href="/pages/lost-found.html">🔍 Lost & Found</a>
             <a href="/pages/timetable-personal.html">📅 My Timetable</a>
-            <a href="/pages/timetable-course.html" class="active">📚 Course Timetable</a>
-            <a href="/pages/academic-calendar.html">📆 Academic Calendar</a>
+            <a href="/pages/timetable-course.html">📚 Course Timetable</a>
+            <a href="/pages/academic-calendar.html" class="active">📆 Academic Calendar</a>
             <a href="/pages/phc-timetable.html">🏥 PHC Timetable</a>
             <a href="/pages/qr-tab.html">📱 QR Wallet</a>
             <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
@@ -100,27 +105,28 @@
 
     <main class="content">
         <header>
-            <h1>Course Timetable</h1>
+            <h1>Academic Calendar</h1>
             <button class="theme-btn" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span></button>
         </header>
 
         <div class="upload-card">
-            <h3>Upload My Course Timetable Image</h3>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">Upload once and it will stay saved for your login forever.</p>
-            <form id="uploadCourseTimetableForm">
-                <input type="file" id="courseTimetableImageInput" name="image" accept="image/*" required>
+            <h3>Upload My Academic Calendar Image</h3>
+            <p class="hint">Upload once and it will stay saved for your login forever.</p>
+            <form id="uploadAcademicCalendarForm">
+                <input type="file" id="academicCalendarImageInput" name="image" accept="image/*" required>
                 <button type="submit">Upload</button>
             </form>
         </div>
 
         <div class="image-view">
-            <div id="courseTimetableDisplay" class="empty">Loading…</div>
+            <div id="academicCalendarDisplay" class="empty">Loading…</div>
         </div>
     </main>
 
     <script src="/js/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/supabase-client.js"></script>
-    <script src="/js/timetable-course.js"></script>
+    <script src="/js/academic-calendar.js"></script>
 </body>
 </html>
+

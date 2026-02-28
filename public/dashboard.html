@@ -384,6 +384,47 @@
     </nav>
 
     <script src="/js/common.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-client.js"></script>
+    <script>
+        // Dashboard customised for the email (first login = default, later = welcome back).
+        (function () {
+            var DASHBOARD_KEY_PREFIX = 'uah-dashboard-seen-';
+
+            function safeKey(email) {
+                return (email || '').replace(/[@.]/g, '_');
+            }
+
+            function setGreeting(email, isFirstLogin) {
+                if (!email) return;
+                var name = (email.split('@')[0] || email).replace(/[._]/g, ' ');
+                var el = document.getElementById('greeting');
+                if (!el) return;
+                if (isFirstLogin) {
+                    el.textContent = 'Welcome, ' + name + '! 👋';
+                } else {
+                    el.textContent = 'Welcome back, ' + name + '! 👋';
+                }
+            }
+
+            function applyDashboardForEmail(email) {
+                if (!email) return;
+                var key = DASHBOARD_KEY_PREFIX + safeKey(email);
+                var alreadySeen = localStorage.getItem(key) === '1';
+                setGreeting(email, !alreadySeen);
+                localStorage.setItem(key, '1');
+            }
+
+            var saved = localStorage.getItem('uah-login-email');
+            if (saved) applyDashboardForEmail(saved);
+            if (window.uahAuth && window.uahAuth.requireUser) {
+                window.uahAuth.requireUser().then(function (user) {
+                    var email = (user && user.email) || saved;
+                    if (email) applyDashboardForEmail(email);
+                });
+            }
+        })();
+    </script>
     <script>
         // --- SEARCH LOGIC ---
         const searchInput = document.getElementById('searchInput');
