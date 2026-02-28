@@ -45,21 +45,30 @@
     </style>
 </head>
 <body>
+    <script>if(localStorage.getItem('uah-theme')==='dark')document.body.classList.add('dark-mode');</script>
+
     <nav class="sidebar">
         <div class="logo">UAH IITJ</div>
         <div class="nav-links">
             <a href="/dashboard.html">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
-            <a href="/pages/restaurant-ordering.html" class="active">🍕 Order Food</a>
+            <a href="/pages/mess-menu.html">🍲 Mess Menu</a>
             <a href="/pages/notifications.html">📢 Notices</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
+            <a href="/pages/timetable-personal.html">📅 My Timetable</a>
+            <a href="/pages/timetable-course.html">📚 Course Timetable</a>
+            <a href="/pages/academic-calendar.html">📆 Academic Calendar</a>
+            <a href="/pages/phc-timetable.html">🏥 PHC Timetable</a>
             <a href="/pages/qr-tab.html">📱 QR Wallet</a>
+            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/restaurant-ordering.html" class="active">🍕 Order Food</a>
         </div>
     </nav>
     <main class="content">
         <header>
             <div class="welcome-text"><h1>Food Ordering 🍕</h1><p style="color: var(--text-muted);">Campus & external services</p></div>
             <div class="search-container"><input type="text" placeholder="Search restaurants..." id="searchInput"></div>
-            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+            <button class="theme-btn" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span></button>
         </header>
         <div class="admin-section" id="adminSection" style="display: none;">
             <h3>Manage Restaurants</h3>
@@ -78,16 +87,7 @@
             </div>
         </div>
     </main>
-    <script>
-        const themeBtn = document.getElementById('themeToggle');
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
-            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
-        });
-        if(localStorage.getItem('uah-theme') === 'dark') { document.body.classList.add('dark-mode'); themeBtn.innerText = '☀️ Light Mode'; }
-    </script>
+    <script src="/js/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/restaurant-ordering.js"></script>
 </body>
