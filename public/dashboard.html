@@ -94,6 +94,20 @@
             color: var(--accent);
             box-shadow: var(--shadow);
         }
+        .nav-links a { position: relative; }
+        .nav-badge {
+            background: #e53e3e;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 6px;
+        }
 
         /* --- MAIN CONTENT --- */
         .content {
@@ -260,6 +274,8 @@
         <div class="nav-links">
             <a href="/dashboard.html" class="active">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
+            <a href="/pages/notifications.html">📢 Notices <span id="emailNotificationBadge" class="nav-badge" style="display:none">0</span></a>
+            <a href="/pages/timetable-personal.html">📅 Timetable</a>
             <a href="/pages/mess-menu.html">🍲 Mess Menu</a>
             <a href="/pages/notifications.html">📢 Notices</a>
             <a href="/pages/lost-found.html">🔍 Lost & Found</a>
@@ -419,5 +435,7 @@
             }, 0);
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/notification-badge.js"></script>
 </body>
 </html>
