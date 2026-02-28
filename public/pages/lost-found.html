@@ -92,6 +92,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .search-container { position: relative; flex: 1; max-width: 400px; margin: 0 20px; }
@@ -126,19 +128,28 @@
             align-items: start;
         }
 
+        /* Form Cards */
         .report-card {
             background: var(--card-bg);
-            padding: 30px;
+            padding: 25px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
-            position: sticky;
-            top: 20px;
+            margin-bottom: 20px;
         }
 
-        .report-card h3 { margin-bottom: 20px; color: var(--accent); }
+        .report-card h3 { 
+            margin-bottom: 20px; 
+            color: var(--accent);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-        .report-card input, .report-card select, .report-card textarea {
+        .report-card input, 
+        .report-card select, 
+        .report-card textarea {
             width: 100%;
             padding: 12px;
             margin-bottom: 15px;
@@ -148,6 +159,13 @@
             color: var(--text-main);
             font-family: 'Outfit', sans-serif;
             outline: none;
+        }
+
+        .file-input {
+            background: var(--bg-app);
+            padding: 8px;
+            border-radius: 12px;
+            margin-bottom: 15px;
         }
 
         .btn-fresh {
@@ -160,6 +178,35 @@
             cursor: pointer;
             width: 100%;
             transition: 0.3s;
+        }
+
+        .btn-fresh:hover {
+            opacity: 0.9;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar select, .filter-bar button {
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-main);
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .filter-bar button {
+            background: var(--accent);
+            color: white;
+            border: none;
         }
 
         /* Item Cards */
@@ -187,6 +234,78 @@
 
         .item-card.lost .status-badge { background: #ff4757; }
         .item-card.found .status-badge { background: #2ed573; }
+
+        .item-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .item-images img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .item-images img:hover {
+            transform: scale(1.05);
+        }
+
+        .contact-info {
+            background: var(--bg-app);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 80%;
+            max-height: 80%;
+            position: relative;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
         /* Mobile */
         @media (max-width: 900px) {
@@ -223,32 +342,90 @@
         </header>
 
         <div class="lf-layout">
+            <!-- Left Column: Forms -->
             <aside>
+                <!-- Found Item Form -->
                 <div class="report-card">
-                    <h3>Report Item</h3>
-                    <form id="reportForm">
-                        <select id="itemType" required>
-                            <option value="">Status</option>
-                            <option value="lost">Lost</option>
-                            <option value="found">Found</option>
+                    <h3>📦 I Found Something</h3>
+                    <form id="foundForm">
+                        <input type="hidden" name="type" value="found">
+                        <input type="text" name="title" placeholder="Item Name (e.g., Black Phone)" required>
+                        <select name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Wallet">Wallet</option>
+                            <option value="Keys">Keys</option>
+                            <option value="ID Card">ID Card</option>
+                            <option value="Laptop">Laptop</option>
+                            <option value="Bag">Bag</option>
+                            <option value="Bottle">Bottle</option>
+                            <option value="Other">Other</option>
                         </select>
-                        <input type="text" id="title" placeholder="Item Name" required>
-                        <input type="text" id="category" placeholder="Category">
-                        <textarea id="description" placeholder="Details (Location, Time)" rows="3"></textarea>
-                        <button type="submit" class="btn-fresh">Post Report</button>
+                        <textarea name="description" placeholder="Description (optional)" rows="2"></textarea>
+                        <input type="text" name="contactInfo" placeholder="Contact / Collection details (e.g., Room 123, Phone: 98765)" required>
+                        <div class="file-input">
+                            <label for="foundImages">Upload Images (up to 5):</label>
+                            <input type="file" id="foundImages" name="images" accept="image/*" multiple>
+                        </div>
+                        <button type="submit" class="btn-fresh">Report Found Item</button>
+                    </form>
+                </div>
+
+                <!-- Lost Item Form -->
+                <div class="report-card">
+                    <h3>🔍 I Lost Something</h3>
+                    <form id="lostForm">
+                        <input type="hidden" name="type" value="lost">
+                        <input type="text" name="title" placeholder="Item Name (e.g., Blue Wallet)" required>
+                        <select name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Wallet">Wallet</option>
+                            <option value="Keys">Keys</option>
+                            <option value="ID Card">ID Card</option>
+                            <option value="Laptop">Laptop</option>
+                            <option value="Bag">Bag</option>
+                            <option value="Bottle">Bottle</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <textarea name="description" placeholder="Description (include where you might have lost it)" rows="3" required></textarea>
+                        <input type="text" name="contactInfo" placeholder="Your contact details (email/phone)" required>
+                        <div class="file-input">
+                            <label for="lostImages">Upload Images (up to 5):</label>
+                            <input type="file" id="lostImages" name="images" accept="image/*" multiple>
+                        </div>
+                        <button type="submit" class="btn-fresh">Report Lost Item</button>
                     </form>
                 </div>
             </aside>
 
-            <section id="itemsList">
-                <div class="item-card lost">
-                    <div class="status-badge">Lost</div>
-                    <h3>Keys with blue keychain</h3>
-                    <p style="color: var(--text-muted); margin-top: 10px;">Lost near LHC 102. Please contact me if found.</p>
+            <!-- Right Column: Found Items List -->
+            <section>
+                <div class="filter-bar">
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Phone">Phone</option>
+                        <option value="Wallet">Wallet</option>
+                        <option value="Keys">Keys</option>
+                        <option value="ID Card">ID Card</option>
+                        <option value="Laptop">Laptop</option>
+                        <option value="Bag">Bag</option>
+                        <option value="Bottle">Bottle</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <button id="applyFilter">Apply Filter</button>
+                    <button id="resetFilter">Reset</button>
                 </div>
+                <div id="foundItemsList"></div>
             </section>
         </div>
     </main>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
 
     <script>
         // Dark Mode Logic
@@ -265,7 +442,7 @@
             themeBtn.innerText = '☀️ Light Mode';
         }
 
-        // Search Filter
+        // Client-side search (filter on rendered items)
         document.getElementById('searchInput').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('.item-card').forEach(card => {

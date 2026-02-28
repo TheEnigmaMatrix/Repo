@@ -3,6 +3,8 @@ const express = require('express');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,12 +27,22 @@ const authenticate = async (req, res, next) => {
   next();
 };
 
+// ========== HELPER FUNCTIONS ==========
+async function isAdmin(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  if (error || !data) return false;
+  return data.role === 'admin';
+}
+
 // ========== API ROUTES ==========
+
 // ----- Mess Crowd System -----
-// Get current occupancy (using sliding window of last 30 mins within meal window)
 app.get('/api/mess/occupancy', async (req, res) => {
   try {
-    // Define meal windows (hardcoded for demo; can be moved to a config table)
     const now = new Date();
     const hour = now.getHours();
     let mealWindow;
@@ -41,34 +53,28 @@ app.get('/api/mess/occupancy', async (req, res) => {
 
     let occupancy = 0;
     let color = 'green';
-    const totalCapacity = 300; // should come from config
+    const totalCapacity = 300;
 
     if (mealWindow !== 'none') {
-      // Count scans in last 30 minutes
       const thirtyMinsAgo = new Date(now.getTime() - 30 * 60000);
       const { count, error } = await supabase
         .from('mess_scans')
         .select('*', { count: 'exact', head: true })
         .gte('scanned_at', thirtyMinsAgo.toISOString())
         .eq('meal_window', mealWindow);
-
       if (error) throw error;
       occupancy = count;
-
-      // Color coding based on occupancy percentage
       const percent = (occupancy / totalCapacity) * 100;
       if (percent < 40) color = 'green';
       else if (percent < 70) color = 'yellow';
       else color = 'red';
     }
-
     res.json({ mealWindow, occupancy, totalCapacity, color });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Simulate a scan (user checks in)
 app.post('/api/mess/scan', authenticate, async (req, res) => {
   try {
     const now = new Date();
@@ -78,11 +84,9 @@ app.post('/api/mess/scan', authenticate, async (req, res) => {
     else if (hour >= 12 && hour < 14) mealWindow = 'lunch';
     else if (hour >= 19 && hour < 21) mealWindow = 'dinner';
     else return res.status(400).json({ error: 'No active meal window' });
-
     const { error } = await supabase
       .from('mess_scans')
       .insert({ user_id: req.user.id, meal_window: mealWindow });
-
     if (error) throw error;
     res.json({ message: 'Scan recorded' });
   } catch (error) {
@@ -91,10 +95,11 @@ app.post('/api/mess/scan', authenticate, async (req, res) => {
 });
 
 // ----- Lost & Found -----
-// Helper function to upload an image to Supabase Storage
+const upload = multer({ storage: multer.memoryStorage() });
+
 const uploadImage = async (file, userId, bucket = 'lost-found') => {
   const fileName = `${userId}/${uuidv4()}-${file.originalname}`;
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from(bucket)
     .upload(fileName, file.buffer, { contentType: file.mimetype });
   if (error) throw error;
@@ -102,13 +107,16 @@ const uploadImage = async (file, userId, bucket = 'lost-found') => {
   return publicUrl;
 };
 
-// Configure multer for memory storage
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Create a lost/found item (with up to 5 images)
 app.post('/api/lost-found', authenticate, upload.array('images', 5), async (req, res) => {
   try {
-    const { type, title, description, category, contactEmail } = req.body;
+    const { type, title, description, category, contactInfo } = req.body;
+    if (!type || !title || !category || !contactInfo) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if (!['lost', 'found'].includes(type)) {
+      return res.status(400).json({ error: 'Invalid type' });
+    }
+
     const imageUrls = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -116,15 +124,16 @@ app.post('/api/lost-found', authenticate, upload.array('images', 5), async (req,
         imageUrls.push(url);
       }
     }
+
     const { data, error } = await supabase
       .from('lost_found_items')
       .insert({
         type,
         title,
-        description,
+        description: description || null,
         category,
         images: imageUrls,
-        contact_email: contactEmail,
+        contact_info: contactInfo,
         user_id: req.user.id
       })
       .select();
@@ -136,7 +145,6 @@ app.post('/api/lost-found', authenticate, upload.array('images', 5), async (req,
   }
 });
 
-// Get all items (optionally filter by type and/or category)
 app.get('/api/lost-found', async (req, res) => {
   try {
     const { type, category } = req.query;
@@ -151,11 +159,24 @@ app.get('/api/lost-found', async (req, res) => {
   }
 });
 
-// Optional: Delete an item (only by its owner or admin)
+app.get('/api/lost-found/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('lost_found_items')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/lost-found/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    // Check ownership (or admin role)
     const { data: item, error: fetchError } = await supabase
       .from('lost_found_items')
       .select('user_id, images')
@@ -163,27 +184,18 @@ app.delete('/api/lost-found/:id', authenticate, async (req, res) => {
       .single();
     if (fetchError) throw fetchError;
 
-    // Only allow deletion if user is owner or admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', req.user.id)
-      .single();
-
-    if (item.user_id !== req.user.id && profile.role !== 'admin') {
+    const admin = await isAdmin(req.user.id);
+    if (item.user_id !== req.user.id && !admin) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    // Delete images from storage
     if (item.images && item.images.length > 0) {
       for (const url of item.images) {
-        // Extract file path from URL (assuming public URL format)
-        const path = url.split('/').slice(-2).join('/'); // e.g., "user-uuid/filename.jpg"
+        const path = url.split('/').slice(-2).join('/');
         await supabase.storage.from('lost-found').remove([path]);
       }
     }
 
-    // Delete database record
     const { error } = await supabase
       .from('lost_found_items')
       .delete()
@@ -196,18 +208,6 @@ app.delete('/api/lost-found/:id', authenticate, async (req, res) => {
 });
 
 // ----- Notifications -----
-// Helper to check if user is admin
-async function isAdmin(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .single();
-  if (error || !data) return false;
-  return data.role === 'admin';
-}
-
-// Get all notifications (optionally by category) - public
 app.get('/api/notifications', async (req, res) => {
   try {
     const { category } = req.query;
@@ -221,19 +221,13 @@ app.get('/api/notifications', async (req, res) => {
   }
 });
 
-// Admin: create notification
 app.post('/api/notifications', authenticate, async (req, res) => {
   try {
-    // Check admin status
     const admin = await isAdmin(req.user.id);
-    if (!admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { title, content, category } = req.body;
-    if (!title || !content) {
-      return res.status(400).json({ error: 'Title and content are required' });
-    }
+    if (!title || !content) return res.status(400).json({ error: 'Title and content required' });
 
     const { data, error } = await supabase
       .from('notifications')
@@ -246,13 +240,11 @@ app.post('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// Optional: Delete notification (admin only)
 app.delete('/api/notifications/:id', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
-    if (!admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    if (!admin) return res.status(403).json({ error: 'Admin access required' });
+
     const { id } = req.params;
     const { error } = await supabase
       .from('notifications')
@@ -266,15 +258,14 @@ app.delete('/api/notifications/:id', authenticate, async (req, res) => {
 });
 
 // ----- Personal Timetable -----
-// Get user's personal events
 app.get('/api/timetable/personal', authenticate, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('personal_timetables')
       .select('*')
       .eq('user_id', req.user.id)
-      .order('day_of_week', { ascending: true })
-      .order('start_time', { ascending: true });
+      .order('day_of_week')
+      .order('start_time');
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -282,28 +273,23 @@ app.get('/api/timetable/personal', authenticate, async (req, res) => {
   }
 });
 
-// Add personal event (with conflict check)
 app.post('/api/timetable/personal', authenticate, async (req, res) => {
   try {
     const { eventName, dayOfWeek, startTime, endTime, location } = req.body;
-
-    // Basic validation
     if (!eventName || dayOfWeek === undefined || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing fields' });
     }
 
-    // Check for overlapping events for this user on the same day
     const { data: existing, error: fetchError } = await supabase
       .from('personal_timetables')
       .select('*')
       .eq('user_id', req.user.id)
       .eq('day_of_week', dayOfWeek)
-      .lt('start_time', endTime)   // existing.start < new.end
-      .gt('end_time', startTime);   // existing.end > new.start
-
+      .lt('start_time', endTime)
+      .gt('end_time', startTime);
     if (fetchError) throw fetchError;
     if (existing && existing.length > 0) {
-      return res.status(400).json({ error: 'Time slot overlaps with an existing event' });
+      return res.status(400).json({ error: 'Time slot overlaps' });
     }
 
     const { data, error } = await supabase
@@ -324,11 +310,9 @@ app.post('/api/timetable/personal', authenticate, async (req, res) => {
   }
 });
 
-// Delete personal event
 app.delete('/api/timetable/personal/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    // Ensure event belongs to user
     const { data: event, error: fetchError } = await supabase
       .from('personal_timetables')
       .select('user_id')
@@ -350,14 +334,13 @@ app.delete('/api/timetable/personal/:id', authenticate, async (req, res) => {
 });
 
 // ----- Course Timetable -----
-// Get all course events (public)
 app.get('/api/timetable/course', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('course_timetables')
       .select('*')
-      .order('day_of_week', { ascending: true })
-      .order('start_time', { ascending: true });
+      .order('day_of_week')
+      .order('start_time');
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -365,20 +348,15 @@ app.get('/api/timetable/course', async (req, res) => {
   }
 });
 
-// Admin: Add a new course
 app.post('/api/timetable/course', authenticate, async (req, res) => {
   try {
-    // Check admin status (reuse isAdmin helper)
     const admin = await isAdmin(req.user.id);
-    if (!admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { courseCode, courseName, dayOfWeek, startTime, endTime, venue, instructor } = req.body;
     if (!courseCode || !courseName || dayOfWeek === undefined || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing fields' });
     }
-
     const { data, error } = await supabase
       .from('course_timetables')
       .insert({
@@ -398,13 +376,11 @@ app.post('/api/timetable/course', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Delete a course
 app.delete('/api/timetable/course/:id', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
-    if (!admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
+    if (!admin) return res.status(403).json({ error: 'Admin access required' });
+
     const { id } = req.params;
     const { error } = await supabase
       .from('course_timetables')
@@ -417,44 +393,13 @@ app.delete('/api/timetable/course/:id', authenticate, async (req, res) => {
   }
 });
 
-// Optional: Update a course (admin)
-app.put('/api/timetable/course/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { id } = req.params;
-    const { courseCode, courseName, dayOfWeek, startTime, endTime, venue, instructor } = req.body;
-
-    const { data, error } = await supabase
-      .from('course_timetables')
-      .update({
-        course_code: courseCode,
-        course_name: courseName,
-        day_of_week: dayOfWeek,
-        start_time: startTime,
-        end_time: endTime,
-        venue,
-        instructor
-      })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ----- Bus Schedule -----
-// Get all bus schedules (public)
-app.get('/api/bus-schedule', async (req, res) => {
+// ----- QR Codes ----- (if you have this feature, include; otherwise skip)
+app.get('/api/qrcodes', authenticate, async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('bus_schedules')
+      .from('user_qr_codes')
       .select('*')
-      .order('route_name', { ascending: true })
-      .order('arrival_time', { ascending: true });
+      .eq('user_id', req.user.id);
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -462,24 +407,20 @@ app.get('/api/bus-schedule', async (req, res) => {
   }
 });
 
-// Admin: Add a bus schedule entry
-app.post('/api/bus-schedule', authenticate, async (req, res) => {
+app.post('/api/qrcodes', authenticate, upload.single('qrImage'), async (req, res) => {
   try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { routeName, stopName, arrivalTime } = req.body;
-    if (!routeName || !stopName || !arrivalTime) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
+    const { name } = req.body;
+    const file = req.file;
+    const fileName = `qr/${req.user.id}/${uuidv4()}-${file.originalname}`;
+    const { error: uploadError } = await supabase.storage
+      .from('qr-codes')
+      .upload(fileName, file.buffer, { contentType: file.mimetype });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from('qr-codes').getPublicUrl(fileName);
 
     const { data, error } = await supabase
-      .from('bus_schedules')
-      .insert({
-        route_name: routeName,
-        stop_name: stopName,
-        arrival_time: arrivalTime
-      })
+      .from('user_qr_codes')
+      .insert({ user_id: req.user.id, name, file_path: publicUrl })
       .select();
     if (error) throw error;
     res.json(data[0]);
@@ -488,7 +429,66 @@ app.post('/api/bus-schedule', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Delete a bus schedule entry
+app.delete('/api/qrcodes/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: qr, error: fetchError } = await supabase
+      .from('user_qr_codes')
+      .select('file_path')
+      .eq('id', id)
+      .eq('user_id', req.user.id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    const fileName = qr.file_path.split('/').slice(-2).join('/');
+    await supabase.storage.from('qr-codes').remove([fileName]);
+
+    const { error } = await supabase
+      .from('user_qr_codes')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    res.json({ message: 'QR deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ----- Bus Schedule -----
+app.get('/api/bus-schedule', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('bus_schedules')
+      .select('*')
+      .order('route_name')
+      .order('arrival_time');
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/bus-schedule', authenticate, async (req, res) => {
+  try {
+    const admin = await isAdmin(req.user.id);
+    if (!admin) return res.status(403).json({ error: 'Admin access required' });
+
+    const { routeName, stopName, arrivalTime } = req.body;
+    if (!routeName || !stopName || !arrivalTime) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+    const { data, error } = await supabase
+      .from('bus_schedules')
+      .insert({ route_name: routeName, stop_name: stopName, arrival_time: arrivalTime })
+      .select();
+    if (error) throw error;
+    res.json(data[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/bus-schedule/:id', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
@@ -506,34 +506,7 @@ app.delete('/api/bus-schedule/:id', authenticate, async (req, res) => {
   }
 });
 
-// Optional: Update a bus schedule entry
-app.put('/api/bus-schedule/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { id } = req.params;
-    const { routeName, stopName, arrivalTime } = req.body;
-
-    const { data, error } = await supabase
-      .from('bus_schedules')
-      .update({
-        route_name: routeName,
-        stop_name: stopName,
-        arrival_time: arrivalTime
-      })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
 // ----- Mess Menu -----
-// Get mess menus (public)
 app.get('/api/mess-menu', async (req, res) => {
   try {
     const { day, category } = req.query;
@@ -548,7 +521,6 @@ app.get('/api/mess-menu', async (req, res) => {
   }
 });
 
-// Admin: Add a menu entry
 app.post('/api/mess-menu', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
@@ -556,9 +528,8 @@ app.post('/api/mess-menu', authenticate, async (req, res) => {
 
     const { mealType, dayOfWeek, items, category } = req.body;
     if (!mealType || dayOfWeek === undefined || !items || !Array.isArray(items)) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing fields' });
     }
-
     const { data, error } = await supabase
       .from('mess_menus')
       .insert({
@@ -575,7 +546,6 @@ app.post('/api/mess-menu', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Delete a menu entry
 app.delete('/api/mess-menu/:id', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
@@ -593,36 +563,14 @@ app.delete('/api/mess-menu/:id', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Update a menu entry (optional)
-app.put('/api/mess-menu/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { id } = req.params;
-    const { mealType, dayOfWeek, items, category } = req.body;
-    const { data, error } = await supabase
-      .from('mess_menus')
-      .update({ meal_type: mealType, day_of_week: dayOfWeek, items, category })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ----- PHC Timetable -----
-// Get all PHC schedules (public)
 app.get('/api/phc-timetable', async (req, res) => {
   try {
     const { doctor, specialization } = req.query;
     let query = supabase.from('phc_timetable').select('*');
     if (doctor) query = query.ilike('doctor_name', `%${doctor}%`);
     if (specialization) query = query.ilike('specialization', `%${specialization}%`);
-    const { data, error } = await query.order('day_of_week', { ascending: true })
-                                         .order('start_time', { ascending: true });
+    const { data, error } = await query.order('day_of_week').order('start_time');
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -630,7 +578,6 @@ app.get('/api/phc-timetable', async (req, res) => {
   }
 });
 
-// Admin: Add a PHC schedule entry
 app.post('/api/phc-timetable', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
@@ -638,9 +585,8 @@ app.post('/api/phc-timetable', authenticate, async (req, res) => {
 
     const { doctorName, specialization, dayOfWeek, startTime, endTime } = req.body;
     if (!doctorName || dayOfWeek === undefined || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing fields' });
     }
-
     const { data, error } = await supabase
       .from('phc_timetable')
       .insert({
@@ -658,7 +604,6 @@ app.post('/api/phc-timetable', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Delete a PHC schedule entry
 app.delete('/api/phc-timetable/:id', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
@@ -676,41 +621,13 @@ app.delete('/api/phc-timetable/:id', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Update a PHC schedule entry
-app.put('/api/phc-timetable/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { id } = req.params;
-    const { doctorName, specialization, dayOfWeek, startTime, endTime } = req.body;
-
-    const { data, error } = await supabase
-      .from('phc_timetable')
-      .update({
-        doctor_name: doctorName,
-        specialization,
-        day_of_week: dayOfWeek,
-        start_time: startTime,
-        end_time: endTime
-      })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ----- Restaurant Ordering -----
-// Get all restaurants (public)
 app.get('/api/restaurants', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('restaurants')
       .select('*')
-      .order('name', { ascending: true });
+      .order('name');
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -718,16 +635,13 @@ app.get('/api/restaurants', async (req, res) => {
   }
 });
 
-// Admin: Add a restaurant
 app.post('/api/restaurants', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
     const { name, url, logo_url } = req.body;
-    if (!name || !url) {
-      return res.status(400).json({ error: 'Name and URL are required' });
-    }
+    if (!name || !url) return res.status(400).json({ error: 'Name and URL required' });
 
     const { data, error } = await supabase
       .from('restaurants')
@@ -740,7 +654,6 @@ app.post('/api/restaurants', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Delete a restaurant
 app.delete('/api/restaurants/:id', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
@@ -758,29 +671,7 @@ app.delete('/api/restaurants/:id', authenticate, async (req, res) => {
   }
 });
 
-// Admin: Update a restaurant (optional)
-app.put('/api/restaurants/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { id } = req.params;
-    const { name, url, logo_url } = req.body;
-    const { data, error } = await supabase
-      .from('restaurants')
-      .update({ name, url, logo_url })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ========== START SERVER ==========
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-
-
