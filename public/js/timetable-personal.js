@@ -2,39 +2,33 @@ const SUPABASE_URL = 'https://zvcqzevzxnqllumwqpxs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2Y3F6ZXZ6eG5xbGx1bXdxcHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTY2MTgsImV4cCI6MjA4Nzc5MjYxOH0.Z3d98gsqhid1pC6hnaMPpnPpNmcR0D2GC-2xUusXuBs';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Logout
 document.getElementById('logout').addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/';
 });
 
-// Helper to get auth token
 async function getToken() {
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token;
 }
 
-// Check authentication
 supabase.auth.getUser().then(({ data: { user } }) => {
     if (!user) window.location.href = '/';
 });
 
-// Load events on page load
 loadEvents();
 
-// Form submission
-document.getElementById('addEventForm').addEventListener('submit', async (e) => {
+document.getElementById('weeklyEventForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const token = await getToken();
     if (!token) return;
 
-    const eventName = document.getElementById('eventName').value;
-    const dayOfWeek = parseInt(document.getElementById('dayOfWeek').value);
-    const startTime = document.getElementById('startTime').value;
-    const endTime = document.getElementById('endTime').value;
-    const location = document.getElementById('location').value;
+    const eventName = document.getElementById('weeklyName').value;
+    const dayOfWeek = parseInt(document.getElementById('weeklyDay').value);
+    const startTime = document.getElementById('weeklyStart').value;
+    const endTime = document.getElementById('weeklyEnd').value;
+    const location = document.getElementById('weeklyLocation').value;
 
-    // Basic time validation
     if (startTime >= endTime) {
         alert('End time must be after start time');
         return;
@@ -51,8 +45,8 @@ document.getElementById('addEventForm').addEventListener('submit', async (e) => 
         });
         const data = await res.json();
         if (res.ok) {
-            alert('Event added!');
-            document.getElementById('addEventForm').reset();
+            alert('Weekly event added!');
+            document.getElementById('weeklyEventForm').reset();
             loadEvents();
         } else {
             alert(data.error);
@@ -63,7 +57,45 @@ document.getElementById('addEventForm').addEventListener('submit', async (e) => 
     }
 });
 
-// Load events and display
+document.getElementById('oneTimeEventForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = await getToken();
+    if (!token) return;
+
+    const eventName = document.getElementById('oneTimeName').value;
+    const eventDate = document.getElementById('oneTimeDate').value;
+    const startTime = document.getElementById('oneTimeStart').value;
+    const endTime = document.getElementById('oneTimeEnd').value;
+    const location = document.getElementById('oneTimeLocation').value;
+
+    if (startTime >= endTime) {
+        alert('End time must be after start time');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/timetable/personal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ eventName, eventDate, startTime, endTime, location })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('One-time event added!');
+            document.getElementById('oneTimeEventForm').reset();
+            loadEvents();
+        } else {
+            alert(data.error);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Failed to add event');
+    }
+});
+
 async function loadEvents() {
     const token = await getToken();
     if (!token) return;
@@ -79,47 +111,62 @@ async function loadEvents() {
     }
 }
 
-// Display events grouped by day
 function displayEvents(events) {
-    const container = document.getElementById('timetableContainer');
-    if (!events || events.length === 0) {
-        container.innerHTML = '<div class="card no-events">No events in your timetable. Add one above!</div>';
-        return;
-    }
-
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const grouped = {};
-    events.forEach(event => {
-        if (!grouped[event.day_of_week]) grouped[event.day_of_week] = [];
-        grouped[event.day_of_week].push(event);
-    });
+    
+    const weekly = events.filter(e => e.day_of_week !== null);
+    const oneTime = events.filter(e => e.event_date !== null).sort((a,b) => a.event_date.localeCompare(b.event_date));
 
-    let html = '';
+    // Weekly grid
+    let weeklyHtml = '';
     for (let day = 0; day <= 6; day++) {
-        if (grouped[day]) {
-            // Sort events by start time
-            grouped[day].sort((a, b) => a.start_time.localeCompare(b.start_time));
-            html += `<div class="day-group card">`;
-            html += `<div class="day-title">${dayNames[day]}</div>`;
-            grouped[day].forEach(event => {
-                html += `
-                    <div class="event-row" data-id="${event.id}">
-                        <div class="event-time">${event.start_time.slice(0,5)} - ${event.end_time.slice(0,5)}</div>
-                        <div class="event-name">${event.event_name}</div>
-                        <div class="event-location">${event.location || ''}</div>
-                        <div class="event-actions">
-                            <button class="delete-event" onclick="deleteEvent('${event.id}')">Delete</button>
-                        </div>
+        const dayEvents = weekly.filter(e => e.day_of_week === day).sort((a,b) => a.start_time.localeCompare(b.start_time));
+        weeklyHtml += `<div class="day-column"><div class="day-header">${dayNames[day]}</div>`;
+        if (dayEvents.length === 0) {
+            weeklyHtml += `<p style="color: var(--text-muted);">No events</p>`;
+        } else {
+            dayEvents.forEach(e => {
+                weeklyHtml += `
+                    <div class="event-item">
+                        <div class="event-time">${e.start_time.slice(0,5)} - ${e.end_time.slice(0,5)}</div>
+                        <div><strong>${e.event_name}</strong></div>
+                        ${e.location ? `<div>📍 ${e.location}</div>` : ''}
+                        <button class="delete-event" onclick="deleteEvent('${e.id}')">Delete</button>
                     </div>
                 `;
             });
-            html += `</div>`;
         }
+        weeklyHtml += '</div>';
     }
-    container.innerHTML = html;
+    document.getElementById('weeklyEvents').innerHTML = weeklyHtml;
+
+    // One-time events grouped by date
+    let oneTimeHtml = '';
+    if (oneTime.length === 0) {
+        oneTimeHtml = '<p>No upcoming one-time events.</p>';
+    } else {
+        let currentDate = '';
+        oneTime.forEach(e => {
+            const dateStr = new Date(e.event_date).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+            if (dateStr !== currentDate) {
+                if (currentDate !== '') oneTimeHtml += '</div>';
+                currentDate = dateStr;
+                oneTimeHtml += `<div class="date-group"><div class="date-header">${dateStr}</div>`;
+            }
+            oneTimeHtml += `
+                <div class="event-item">
+                    <div class="event-time">${e.start_time.slice(0,5)} - ${e.end_time.slice(0,5)}</div>
+                    <div><strong>${e.event_name}</strong></div>
+                    ${e.location ? `<div>📍 ${e.location}</div>` : ''}
+                    <button class="delete-event" onclick="deleteEvent('${e.id}')">Delete</button>
+                </div>
+            `;
+        });
+        oneTimeHtml += '</div>';
+    }
+    document.getElementById('oneTimeEvents').innerHTML = oneTimeHtml;
 }
 
-// Delete event
 window.deleteEvent = async function(id) {
     if (!confirm('Delete this event?')) return;
     const token = await getToken();
@@ -139,3 +186,17 @@ window.deleteEvent = async function(id) {
         console.error(err);
     }
 };
+
+// Dark mode
+const themeBtn = document.getElementById('themeToggle');
+themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
+});
+
+if(localStorage.getItem('uah-theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+    themeBtn.innerText = '☀️ Light Mode';
+}

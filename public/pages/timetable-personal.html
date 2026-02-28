@@ -5,22 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Timetable - UAH IITJ</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        /* Shared UI Variables from Dashboard */
         :root {
             --bg-app: #f0f4f8;
             --glass-bg: rgba(255, 255, 255, 0.8);
             --card-bg: #ffffff;
             --text-main: #2d3748;
             --text-muted: #718096;
-            --accent: #4a90e2; 
-            --accent-secondary: #c49b3f;
+            --accent: #4a90e2;
             --border-color: rgba(0, 0, 0, 0.05);
             --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
             --radius: 24px;
         }
-
         body.dark-mode {
             --bg-app: #0f172a;
             --glass-bg: rgba(30, 41, 59, 0.8);
@@ -31,24 +27,12 @@
             --border-color: rgba(255, 255, 255, 0.1);
             --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-app);
-            color: var(--text-main);
-            display: flex;
-            min-height: 100vh;
-            transition: background 0.4s ease;
-        }
-
-        /* Sidebar Styling */
+        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-app); color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.4s ease; }
         .sidebar {
             width: 280px;
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
@@ -57,9 +41,7 @@
             height: 100vh;
             z-index: 100;
         }
-
         .logo { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 40px; padding-left: 15px; }
-
         .nav-links a {
             text-decoration: none;
             color: var(--text-muted);
@@ -72,41 +54,35 @@
             margin-bottom: 8px;
             transition: 0.3s;
         }
-
         .nav-links a:hover, .nav-links a.active {
             background: var(--card-bg);
             color: var(--accent);
             box-shadow: var(--shadow);
         }
-
-        /* Main Content Styling */
+        #logout {
+            margin-top: auto;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 500;
+        }
         .content {
             margin-left: 280px;
             padding: 40px;
             width: 100%;
             max-width: 1200px;
         }
-
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-
-        .search-container { position: relative; flex: 1; max-width: 400px; margin: 0 20px; }
-        
-        #searchInput {
-            width: 100%;
-            padding: 12px 20px 12px 45px;
-            border-radius: 15px;
-            border: 1px solid var(--border-color);
-            background: var(--card-bg);
-            color: var(--text-main);
-            outline: none;
-            box-shadow: var(--shadow);
-        }
-
         .theme-btn {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -117,188 +93,151 @@
             color: var(--text-main);
             box-shadow: var(--shadow);
         }
-
-        /* Form Styling */
-        .add-form {
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .form-card {
             background: var(--card-bg);
-            padding: 30px;
-            border-radius: var(--radius);
+            padding: 25px;
+            border-radius: 24px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
-            margin-bottom: 40px;
         }
-
-        .add-form h3 { margin-bottom: 20px; color: var(--accent); }
-
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end; }
-
-        .input-group { display: flex; flex-direction: column; gap: 8px; }
-
-        .input-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
-
-        input, select {
+        .form-card h3 { margin-bottom: 20px; color: var(--accent); }
+        .form-card input, .form-card select {
+            width: 100%;
             padding: 12px;
+            margin-bottom: 15px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             background: var(--bg-app);
             color: var(--text-main);
             font-family: 'Outfit', sans-serif;
-            outline: none;
         }
-
-        .submit-btn {
-            background: #27ae60;
+        .btn-fresh {
+            background: var(--accent);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 12px;
             border-radius: 12px;
             font-weight: 700;
             cursor: pointer;
-            transition: 0.3s;
+            width: 100%;
         }
-
-        /* Event Cards */
-        .day-group { margin-bottom: 30px; }
-
-        .day-title { background: var(--accent-secondary); color: white; padding: 12px 25px; border-radius: 18px 18px 0 0; font-weight: 700; }
-
-        .event-card {
+        .section-title { margin: 30px 0 15px; color: var(--accent); }
+        .weekly-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .day-column {
             background: var(--card-bg);
-            padding: 20px 25px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: 0.2s;
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: var(--shadow);
         }
-
-        .event-card:last-child { border-radius: 0 0 18px 18px; border-bottom: none; }
-
-        .event-card:hover { background: var(--bg-app); }
-
-        .event-info b { font-size: 1.1rem; color: var(--text-main); display: block; }
-
-        .event-info span { font-size: 0.9rem; color: var(--text-muted); }
-
-        .time-pill {
-            background: var(--accent);
+        .day-header { font-weight: 600; margin-bottom: 10px; color: var(--accent); }
+        .event-item {
+            background: var(--bg-app);
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .event-time { font-weight: 600; color: var(--accent); }
+        .delete-event {
+            background: #ff4757;
             color: white;
-            padding: 6px 16px;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 0.85rem;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-top: 5px;
         }
-
-        /* Mobile Adjustments */
+        .one-time-list {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        .date-group { margin-bottom: 20px; }
+        .date-header { font-weight: 600; margin-bottom: 10px; color: var(--accent); }
         @media (max-width: 900px) {
             .sidebar { display: none; }
             .content { margin-left: 0; padding: 20px; }
-            .form-row { grid-template-columns: 1fr; }
+            .form-container { grid-template-columns: 1fr; }
+            .weekly-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-
     <nav class="sidebar">
         <div class="logo">UAH IITJ</div>
         <div class="nav-links">
             <a href="/dashboard.html">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
-            <a href="/pages/timetable-personal.html" class="active">📅 My Timetable</a>
-            <a href="/pages/timetable-course.html">📚 Course Schedule</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
             <a href="/pages/notifications.html">📢 Notices</a>
-            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/timetable-personal.html" class="active">📅 My Timetable</a>
+            <a href="/pages/timetable-course.html">📚 Course Timetable</a>
+            <a href="/pages/academic-calendar.html">📆 Academic Calendar</a>
             <a href="/pages/qr-tab.html">📱 QR Wallet</a>
         </div>
+        <button id="logout">Logout</button>
     </nav>
 
     <main class="content">
         <header>
-            <div class="welcome-text">
-                <h1>My Timetable 📅</h1>
-                <p style="color: var(--text-muted);">Manage your personal activities & study plan</p>
-            </div>
-            <div class="search-container">
-                <input type="text" placeholder="Search events..." id="searchInput">
-            </div>
+            <h1>My Timetable</h1>
             <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
         </header>
 
-        <div class="add-form">
-            <h3>Add New Event</h3>
-            <form id="addEventForm">
-                <div class="form-row">
-                    <div class="input-group">
-                        <label>Event Name</label>
-                        <input type="text" id="eventName" placeholder="e.g. Study Session" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Day</label>
-                        <select id="dayOfWeek" required>
-                            <option value="">Select day</option>
-                            <option value="1">Monday</option>
-                            <option value="2">Tuesday</option>
-                            <option value="3">Wednesday</option>
-                            <option value="4">Thursday</option>
-                            <option value="5">Friday</option>
-                            <option value="6">Saturday</option>
-                            <option value="0">Sunday</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>From</label>
-                        <input type="time" id="startTime" required>
-                    </div>
-                    <div class="input-group">
-                        <label>To</label>
-                        <input type="time" id="endTime" required>
-                    </div>
-                    <div class="input-group">
-                        <label>Location</label>
-                        <input type="text" id="location" placeholder="e.g. Library">
-                    </div>
-                    <button type="submit" class="submit-btn">Add Event</button>
-                </div>
-            </form>
-        </div>
+        <div class="form-container">
+            <div class="form-card">
+                <h3>➕ Weekly Recurring Event</h3>
+                <form id="weeklyEventForm">
+                    <input type="text" id="weeklyName" placeholder="Event Name" required>
+                    <select id="weeklyDay" required>
+                        <option value="">Select Day</option>
+                        <option value="0">Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                    <input type="time" id="weeklyStart" required>
+                    <input type="time" id="weeklyEnd" required>
+                    <input type="text" id="weeklyLocation" placeholder="Location (optional)">
+                    <button type="submit" class="btn-fresh">Add Weekly Event</button>
+                </form>
+            </div>
 
-        <div id="timetableContainer">
-            <div class="day-group">
-                <div class="day-title">Monday</div>
-                <div class="event-card">
-                    <div class="event-info">
-                        <b>Gym Session</b>
-                        <span>Hostel Gym</span>
-                    </div>
-                    <div class="time-pill">06:00 AM - 07:30 AM</div>
-                </div>
+            <div class="form-card">
+                <h3>📅 One-Time Event</h3>
+                <form id="oneTimeEventForm">
+                    <input type="text" id="oneTimeName" placeholder="Event Name" required>
+                    <input type="date" id="oneTimeDate" required>
+                    <input type="time" id="oneTimeStart" required>
+                    <input type="time" id="oneTimeEnd" required>
+                    <input type="text" id="oneTimeLocation" placeholder="Location (optional)">
+                    <button type="submit" class="btn-fresh">Add One-Time Event</button>
+                </form>
             </div>
         </div>
+
+        <h2 class="section-title">Weekly Schedule</h2>
+        <div class="weekly-grid" id="weeklyEvents"></div>
+
+        <h2 class="section-title">Upcoming One-Time Events</h2>
+        <div class="one-time-list" id="oneTimeEvents"></div>
     </main>
-
-    <script>
-        // Dark Mode Logic
-        const themeBtn = document.getElementById('themeToggle');
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
-            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
-        });
-
-        if(localStorage.getItem('uah-theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeBtn.innerText = '☀️ Light Mode';
-        }
-
-        // Filter Logic
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll('.event-card').forEach(card => {
-                card.style.display = card.innerText.toLowerCase().includes(term) ? 'flex' : 'none';
-            });
-        });
-    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/timetable-personal.js"></script>
