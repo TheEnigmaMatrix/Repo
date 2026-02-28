@@ -6,8 +6,27 @@
     <title>Academic Calendar - UAH IITJ</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { /* same variables as above */ }
-        body.dark-mode { /* same */ }
+        :root {
+            --bg-app: #f0f4f8;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --accent: #4a90e2;
+            --border-color: rgba(0, 0, 0, 0.05);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            --radius: 24px;
+        }
+        body.dark-mode {
+            --bg-app: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #60a5fa;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Outfit', sans-serif; background-color: var(--bg-app); color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.4s ease; }
         .sidebar { width: 280px; background: var(--glass-bg); backdrop-filter: blur(12px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 40px 20px; position: fixed; height: 100vh; z-index: 100; }
@@ -57,17 +76,23 @@
     </style>
 </head>
 <body>
+    <script>if(localStorage.getItem('uah-theme')==='dark')document.body.classList.add('dark-mode');</script>
+
     <nav class="sidebar">
         <div class="logo">UAH IITJ</div>
         <div class="nav-links">
             <a href="/dashboard.html">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
-            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
+            <a href="/pages/mess-menu.html">🍲 Mess Menu</a>
             <a href="/pages/notifications.html">📢 Notices</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
             <a href="/pages/timetable-personal.html">📅 My Timetable</a>
             <a href="/pages/timetable-course.html">📚 Course Timetable</a>
             <a href="/pages/academic-calendar.html" class="active">📆 Academic Calendar</a>
+            <a href="/pages/phc-timetable.html">🏥 PHC Timetable</a>
             <a href="/pages/qr-tab.html">📱 QR Wallet</a>
+            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/restaurant-ordering.html">🍕 Order Food</a>
         </div>
         <button id="logout">Logout</button>
     </nav>
@@ -75,7 +100,7 @@
     <main class="content">
         <header>
             <h1>Academic Calendar</h1>
-            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+            <button class="theme-btn" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span></button>
         </header>
 
         <div id="adminUploadSection" style="display: none;">
@@ -96,6 +121,7 @@
         </div>
     </main>
 
+    <script src="/js/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/academic-calendar.js"></script>
 </body>
