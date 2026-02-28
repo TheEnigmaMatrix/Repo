@@ -3,209 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Timetable - UAH IITJ</title>
+    <title>Academic Calendar - UAH IITJ</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        /* Shared UI Variables from Dashboard */
-        :root {
-            --bg-app: #f0f4f8;
-            --glass-bg: rgba(255, 255, 255, 0.8);
-            --card-bg: #ffffff;
-            --text-main: #2d3748;
-            --text-muted: #718096;
-            --accent: #4a90e2; 
-            --accent-secondary: #c49b3f;
-            --border-color: rgba(0, 0, 0, 0.05);
-            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-            --radius: 24px;
-        }
-
-        body.dark-mode {
-            --bg-app: #0f172a;
-            --glass-bg: rgba(30, 41, 59, 0.8);
-            --card-bg: #1e293b;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --accent: #60a5fa;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-        }
-
+        :root { /* same variables as above */ }
+        body.dark-mode { /* same */ }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-app);
-            color: var(--text-main);
-            display: flex;
-            min-height: 100vh;
-            transition: background 0.4s ease;
-        }
-
-        /* Sidebar Styling */
-        .sidebar {
-            width: 280px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-right: 1px solid var(--border-color);
-            display: flex; flex-direction: column; padding: 40px 20px; position: fixed; height: 100vh; z-index: 100;
-        }
-
+        body { font-family: 'Outfit', sans-serif; background-color: var(--bg-app); color: var(--text-main); display: flex; min-height: 100vh; transition: background 0.4s ease; }
+        .sidebar { width: 280px; background: var(--glass-bg); backdrop-filter: blur(12px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 40px 20px; position: fixed; height: 100vh; z-index: 100; }
         .logo { font-weight: 700; font-size: 1.5rem; color: var(--accent); margin-bottom: 40px; padding-left: 15px; }
-
-        .nav-links a {
-            text-decoration: none; color: var(--text-muted); padding: 14px 18px; border-radius: 16px;
-            font-weight: 500; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; transition: 0.3s;
-        }
-
+        .nav-links a { text-decoration: none; color: var(--text-muted); padding: 14px 18px; border-radius: 16px; font-weight: 500; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; transition: 0.3s; }
         .nav-links a:hover, .nav-links a.active { background: var(--card-bg); color: var(--accent); box-shadow: var(--shadow); }
-
-        /* Main Content Styling */
-        .content { margin-left: 280px; padding: 40px; width: 100%; max-width: 1400px; }
-
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-
-        .search-container { position: relative; flex: 1; max-width: 400px; margin: 0 20px; }
-        
-        #searchInput {
-            width: 100%; padding: 12px 20px 12px 45px; border-radius: 15px; border: 1px solid var(--border-color);
-            background: var(--card-bg); color: var(--text-main); outline: none; box-shadow: var(--shadow);
+        #logout { margin-top: auto; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 12px; border-radius: 16px; cursor: pointer; }
+        .content { margin-left: 280px; padding: 40px; width: 100%; max-width: 1200px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; flex-wrap: wrap; gap: 15px; }
+        .theme-btn { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; color: var(--text-main); box-shadow: var(--shadow); }
+        .admin-form {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
         }
-
-        .theme-btn {
-            background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 20px;
-            border-radius: 50px; cursor: pointer; font-weight: 600; color: var(--text-main); box-shadow: var(--shadow);
+        .admin-form input, .admin-form button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-app);
+            color: var(--text-main);
         }
-
-        /* Timetable UI */
-        .day-group { margin-bottom: 30px; }
-        .day-title { background: var(--accent); color: white; padding: 12px 25px; border-radius: 18px 18px 0 0; font-weight: 700; }
-
-        .course-card {
-            background: var(--card-bg); padding: 20px 25px; border-bottom: 1px solid var(--border-color);
-            display: grid; grid-template-columns: 150px 100px 1fr 200px auto; align-items: center; gap: 15px; transition: 0.3s;
+        .calendar-view {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            text-align: center;
         }
-
-        .course-card:last-child { border-radius: 0 0 18px 18px; border-bottom: none; }
-        .course-card:hover { background: var(--bg-app); }
-
-        .course-time { font-weight: 700; color: var(--accent); }
-        .course-code { background: #f1f5f9; padding: 4px 10px; border-radius: 8px; font-weight: 700; color: var(--text-main); text-align: center; }
-        
-        /* Admin Form Styling */
-        .admin-card {
-            background: var(--card-bg); padding: 30px; border-radius: var(--radius);
-            box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 30px;
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 16px;
+            margin-top: 20px;
         }
-
-        .admin-card input, .admin-card select {
-            padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);
-            margin-bottom: 10px; width: 100%; background: var(--bg-app); color: var(--text-main);
-        }
-
-        .submit-btn {
-            background: #27ae60; color: white; padding: 12px 24px; border-radius: 12px;
-            border: none; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s;
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 1000px) {
+        .no-calendar { color: var(--text-muted); padding: 40px; }
+        @media (max-width: 900px) {
             .sidebar { display: none; }
             .content { margin-left: 0; padding: 20px; }
-            .course-card { grid-template-columns: 1fr; gap: 5px; }
         }
     </style>
 </head>
 <body>
-
     <nav class="sidebar">
         <div class="logo">UAH IITJ</div>
         <div class="nav-links">
             <a href="/dashboard.html">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
-            <a href="/pages/timetable-personal.html">📅 My Timetable</a>
-            <a href="/pages/timetable-course.html" class="active">📚 Course Schedule</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
             <a href="/pages/notifications.html">📢 Notices</a>
-            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/timetable-personal.html">📅 My Timetable</a>
+            <a href="/pages/timetable-course.html">📚 Course Timetable</a>
+            <a href="/pages/academic-calendar.html" class="active">📆 Academic Calendar</a>
+            <a href="/pages/qr-tab.html">📱 QR Wallet</a>
         </div>
+        <button id="logout">Logout</button>
     </nav>
 
     <main class="content">
         <header>
-            <div class="welcome-text">
-                <h1>Course Timetable 📚</h1>
-                <p style="color: var(--text-muted);">Official institute academic schedule</p>
-            </div>
-            <div class="search-container">
-                <input type="text" placeholder="Search courses or venues..." id="searchInput">
-            </div>
+            <h1>Academic Calendar</h1>
             <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
         </header>
 
-        <div id="adminFormContainer" style="display: none;">
-            <div class="admin-card">
-                <h3 style="margin-bottom: 20px;">Add New Course</h3>
-                <form id="addCourseForm">
-                    <input type="text" id="courseCode" placeholder="Code (e.g., CS101)" required>
-                    <input type="text" id="courseName" placeholder="Course Name" required>
-                    <select id="dayOfWeek" required>
-                        <option value="">Select Day</option>
-                        <option value="1">Monday</option>
-                        <option value="2">Tuesday</option>
-                        <option value="3">Wednesday</option>
-                        <option value="4">Thursday</option>
-                        <option value="5">Friday</option>
-                    </select>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <input type="time" id="startTime" required>
-                        <input type="time" id="endTime" required>
-                    </div>
-                    <input type="text" id="venue" placeholder="Venue">
-                    <button type="submit" class="submit-btn">Add to Schedule</button>
+        <div id="adminUploadSection" style="display: none;">
+            <div class="admin-form">
+                <h3>Upload New Academic Calendar (PDF)</h3>
+                <form id="uploadCalendarForm">
+                    <input type="text" id="calendarTitle" placeholder="Calendar Title (e.g., 2026-27)" required>
+                    <input type="file" id="calendarPdf" accept=".pdf" required>
+                    <button type="submit">Upload</button>
                 </form>
             </div>
         </div>
 
-        <div id="timetableContainer">
-            <div class="day-group">
-                <div class="day-title">Monday</div>
-                <div class="course-card">
-                    <span class="course-time">09:00 - 10:00 AM</span>
-                    <span class="course-code">CS101</span>
-                    <b>Computer Programming</b>
-                    <span style="color: var(--text-muted);">LHC 101 • Dr. Sharma</span>
-                </div>
+        <div class="calendar-view">
+            <div id="calendarDisplay">
+                <p>Loading...</p>
             </div>
         </div>
     </main>
 
-    <script>
-        // Theme Logic
-        const themeBtn = document.getElementById('themeToggle');
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
-            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
-        });
-
-        if(localStorage.getItem('uah-theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeBtn.innerText = '☀️ Light Mode';
-        }
-
-        // Filter Logic
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll('.course-card').forEach(card => {
-                card.style.display = card.innerText.toLowerCase().includes(term) ? 'grid' : 'none';
-            });
-        });
-    </script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/timetable-course.js"></script>
+    <script src="/js/academic-calendar.js"></script>
 </body>
 </html>

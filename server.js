@@ -257,15 +257,16 @@ app.delete('/api/notifications/:id', authenticate, async (req, res) => {
   }
 });
 
-// ----- Personal Timetable -----
+// ----- Personal Timetable (weekly and one-time events) -----
 app.get('/api/timetable/personal', authenticate, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('personal_timetables')
       .select('*')
       .eq('user_id', req.user.id)
-      .order('day_of_week')
-      .order('start_time');
+      .order('event_date', { ascending: true, nullsFirst: false })
+      .order('day_of_week', { ascending: true, nullsFirst: false })
+      .order('start_time', { ascending: true });
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -275,33 +276,58 @@ app.get('/api/timetable/personal', authenticate, async (req, res) => {
 
 app.post('/api/timetable/personal', authenticate, async (req, res) => {
   try {
-    const { eventName, dayOfWeek, startTime, endTime, location } = req.body;
-    if (!eventName || dayOfWeek === undefined || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing fields' });
+    const { eventName, dayOfWeek, startTime, endTime, location, eventDate } = req.body;
+    
+    if (!eventName || !startTime || !endTime) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if ((dayOfWeek === undefined || dayOfWeek === '') && !eventDate) {
+      return res.status(400).json({ error: 'Either day of week or specific date is required' });
+    }
+    if (dayOfWeek !== undefined && dayOfWeek !== '' && eventDate) {
+      return res.status(400).json({ error: 'Cannot provide both day of week and date' });
     }
 
-    const { data: existing, error: fetchError } = await supabase
+    // Check for overlaps
+    let query = supabase
       .from('personal_timetables')
       .select('*')
-      .eq('user_id', req.user.id)
-      .eq('day_of_week', dayOfWeek)
-      .lt('start_time', endTime)
-      .gt('end_time', startTime);
+      .eq('user_id', req.user.id);
+
+    if (dayOfWeek !== undefined && dayOfWeek !== '') {
+      query = query.eq('day_of_week', dayOfWeek)
+                   .lt('start_time', endTime)
+                   .gt('end_time', startTime);
+    } else {
+      query = query.eq('event_date', eventDate)
+                   .lt('start_time', endTime)
+                   .gt('end_time', startTime);
+    }
+
+    const { data: existing, error: fetchError } = await query;
     if (fetchError) throw fetchError;
     if (existing && existing.length > 0) {
-      return res.status(400).json({ error: 'Time slot overlaps' });
+      return res.status(400).json({ error: 'Time slot overlaps with an existing event' });
+    }
+
+    const insertData = {
+      user_id: req.user.id,
+      event_name: eventName,
+      start_time: startTime,
+      end_time: endTime,
+      location: location || null
+    };
+    if (dayOfWeek !== undefined && dayOfWeek !== '') {
+      insertData.day_of_week = dayOfWeek;
+      insertData.event_date = null;
+    } else {
+      insertData.event_date = eventDate;
+      insertData.day_of_week = null;
     }
 
     const { data, error } = await supabase
       .from('personal_timetables')
-      .insert({
-        user_id: req.user.id,
-        event_name: eventName,
-        day_of_week: dayOfWeek,
-        start_time: startTime,
-        end_time: endTime,
-        location: location || null
-      })
+      .insert(insertData)
       .select();
     if (error) throw error;
     res.json(data[0]);
@@ -333,61 +359,56 @@ app.delete('/api/timetable/personal/:id', authenticate, async (req, res) => {
   }
 });
 
-// ----- Course Timetable -----
-app.get('/api/timetable/course', async (req, res) => {
+// ----- Academic Calendar -----
+app.get('/api/academic-calendar', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('course_timetables')
+      .from('academic_calendars')
       .select('*')
-      .order('day_of_week')
-      .order('start_time');
-    if (error) throw error;
-    res.json(data);
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (data) {
+      const { data: { publicUrl } } = supabase.storage.from('academic-calendars').getPublicUrl(data.file_path);
+      res.json({ ...data, file_url: publicUrl });
+    } else {
+      res.json(null);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/timetable/course', authenticate, async (req, res) => {
+app.post('/api/academic-calendar', authenticate, upload.single('pdf'), async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
-    const { courseCode, courseName, dayOfWeek, startTime, endTime, venue, instructor } = req.body;
-    if (!courseCode || !courseName || dayOfWeek === undefined || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing fields' });
+    const { title } = req.body;
+    if (!title || !req.file) {
+      return res.status(400).json({ error: 'Title and PDF file are required' });
     }
+
+    const file = req.file;
+    const fileName = `academic-calendar/${uuidv4()}-${file.originalname}`;
+    const { error: uploadError } = await supabase.storage
+      .from('academic-calendars')
+      .upload(fileName, file.buffer, { contentType: file.mimetype });
+    if (uploadError) throw uploadError;
+
     const { data, error } = await supabase
-      .from('course_timetables')
+      .from('academic_calendars')
       .insert({
-        course_code: courseCode,
-        course_name: courseName,
-        day_of_week: dayOfWeek,
-        start_time: startTime,
-        end_time: endTime,
-        venue: venue || null,
-        instructor: instructor || null
+        title,
+        file_path: fileName,
+        uploaded_by: req.user.id
       })
       .select();
     if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
-app.delete('/api/timetable/course/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
-
-    const { id } = req.params;
-    const { error } = await supabase
-      .from('course_timetables')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-    res.json({ message: 'Course deleted' });
+    const { data: { publicUrl } } = supabase.storage.from('academic-calendars').getPublicUrl(fileName);
+    res.json({ ...data[0], file_url: publicUrl });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
