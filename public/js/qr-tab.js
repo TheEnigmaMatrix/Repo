@@ -16,7 +16,13 @@ function getQrList() {
 }
 
 function saveQrList(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        return true;
+    } catch (e) {
+        console.error('localStorage save failed:', e);
+        return false;
+    }
 }
 
 function showToast(msg, icon = '📱') {
@@ -25,8 +31,16 @@ function showToast(msg, icon = '📱') {
     const toastIcon = document.getElementById('toastIcon');
     if (toastMsg) toastMsg.textContent = msg;
     if (toastIcon) toastIcon.textContent = icon;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3500);
+    if (toast) {
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function renderQrList(filterTerm = '') {
@@ -90,12 +104,6 @@ function renderQrList(filterTerm = '') {
     });
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 function openQrModal(id) {
     const list = getQrList();
     const item = list.find(x => x.id === id);
@@ -109,18 +117,19 @@ function openQrModal(id) {
         imgEl.src = item.imageData;
         imgEl.alt = item.name + ' QR Code';
     }
-    modal.classList.add('show');
+    if (modal) modal.classList.add('show');
 }
 
 function closeQrModal() {
     const modal = document.getElementById('qrModal');
-    modal.classList.remove('show');
+    if (modal) modal.classList.remove('show');
 }
 
 function deleteQr(id) {
     const list = getQrList().filter(x => x.id !== id);
     saveQrList(list);
-    renderQrList(document.getElementById('searchInput')?.value || '');
+    const searchEl = document.getElementById('searchInput');
+    renderQrList(searchEl ? searchEl.value.trim() : '');
     showToast('QR removed', '🗑️');
     closeQrModal();
 }
@@ -129,47 +138,60 @@ function addQr(name, imageData) {
     const list = getQrList();
     const id = 'qr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     list.push({ id, name: name.trim(), imageData });
-    saveQrList(list);
-    renderQrList(document.getElementById('searchInput')?.value || '');
+    if (!saveQrList(list)) {
+        showToast('Save failed. Try a smaller image or check storage.', '⚠️');
+        return;
+    }
+    const searchEl = document.getElementById('searchInput');
+    renderQrList(searchEl ? searchEl.value.trim() : '');
     showToast('QR saved: ' + name.trim(), '✅');
 }
 
-// Form submit: add new QR
-document.getElementById('addQrForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const nameInput = document.getElementById('qrName');
-    const fileInput = document.getElementById('qrFile');
-    const name = nameInput?.value?.trim();
-    const file = fileInput?.files?.[0];
+function init() {
+    const form = document.getElementById('addQrForm');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('qrName');
+            const fileInput = document.getElementById('qrFile');
+            const name = nameInput ? nameInput.value.trim() : '';
+            const file = fileInput && fileInput.files ? fileInput.files[0] : null;
 
-    if (!name) {
-        showToast('Please enter a name', '⚠️');
-        return;
+            if (!name) {
+                showToast('Please enter a name', '⚠️');
+                return;
+            }
+            if (!file || !file.type || !file.type.startsWith('image/')) {
+                showToast('Please choose an image file', '⚠️');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                addQr(name, reader.result);
+                if (nameInput) nameInput.value = '';
+                if (fileInput) fileInput.value = '';
+            };
+            reader.onerror = () => showToast('Could not read file', '⚠️');
+            reader.readAsDataURL(file);
+        });
     }
-    if (!file || !file.type.startsWith('image/')) {
-        showToast('Please choose an image file', '⚠️');
-        return;
+
+    document.getElementById('qrModalClose')?.addEventListener('click', closeQrModal);
+    document.getElementById('qrModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'qrModal') closeQrModal();
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => renderQrList(searchInput.value.trim()));
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-        addQr(name, reader.result);
-        nameInput.value = '';
-        fileInput.value = '';
-    };
-    reader.readAsDataURL(file);
-});
+    renderQrList('');
+}
 
-// Modal close
-document.getElementById('qrModalClose')?.addEventListener('click', closeQrModal);
-document.getElementById('qrModal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'qrModal') closeQrModal();
-});
-
-// Search filter
-document.getElementById('searchInput')?.addEventListener('input', (e) => {
-    renderQrList(e.target.value.trim());
-});
-
-// Initial render
-renderQrList();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
