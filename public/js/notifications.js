@@ -4,10 +4,9 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function getToken() {
     const { data } = await supabase.auth.getSession();
-    return data.session?.access_token;
+    return data.session?.access_token || null;
 }
 
-let currentUser = null;
 let isAdminUser = false;
 let lastUnseenCount = -1;
 let pollUnseenInterval = null;
@@ -17,41 +16,63 @@ document.getElementById('logout')?.addEventListener('click', async () => {
     window.location.href = '/';
 });
 
-// Auth and admin
-supabase.auth.getUser().then(async ({ data: { user } }) => {
-    if (!user) {
-        window.location.href = '/';
+function getLoginEmail() {
+    return (localStorage.getItem('uah-login-email') || '').trim().toLowerCase();
+}
+
+async function getAuthHeaders(extraHeaders) {
+    const headers = Object.assign({}, extraHeaders || {});
+    const token = await getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    else {
+        const email = getLoginEmail();
+        if (email) headers['X-User-Email'] = email;
+    }
+    return headers;
+}
+
+(async function init() {
+    const email = getLoginEmail();
+    if (!email) {
+        window.location.href = '/index.html';
         return;
     }
-    currentUser = user;
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-    if (profile) {
-        isAdminUser = profile.role === 'admin';
-        const adminEl = document.getElementById('adminSection');
-        const formEl = document.getElementById('adminFormContainer');
-        if (adminEl) adminEl.style.display = 'block';
-        if (formEl && isAdminUser) formEl.style.display = 'block';
-    }
+
+    // Admin only if Supabase session exists (optional)
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            if (profile) {
+                isAdminUser = profile.role === 'admin';
+                const adminEl = document.getElementById('adminSection');
+                const formEl = document.getElementById('adminFormContainer');
+                if (adminEl) adminEl.style.display = 'block';
+                if (formEl && isAdminUser) formEl.style.display = 'block';
+            }
+        }
+    } catch (_) { /* ignore */ }
+
     // Gmail: handle redirect params
     const params = new URLSearchParams(window.location.search);
     if (params.get('gmail') === 'connected') {
         window.history.replaceState({}, '', window.location.pathname);
         document.getElementById('gmailConnectBlock').style.display = 'none';
         document.getElementById('gmailConnectedBlock').style.display = 'block';
-        loadWatchedSenders();
     } else if (params.get('gmail') === 'error') {
         window.history.replaceState({}, '', window.location.pathname);
         alert('Gmail connection failed. Please try again.');
     }
+
     await refreshGmailStatus();
-    loadEmailNotifications();
     loadWatchedSenders();
+    loadUnseenBySender();
     startUnseenCountPolling();
-});
+})();
 
 // ----- Campus notices (admin post) -----
 document.getElementById('notificationForm')?.addEventListener('submit', async (e) => {
@@ -135,10 +156,8 @@ document.getElementById('resetFilter')?.addEventListener('click', () => {
 
 // ----- Gmail connect & watched senders -----
 async function refreshGmailStatus() {
-    const token = await getToken();
-    if (!token) return;
     try {
-        const res = await fetch('/api/gmail/status', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch('/api/gmail/status', { headers: await getAuthHeaders() });
         const data = await res.json();
         if (res.ok && data.connected) {
             document.getElementById('gmailConnectBlock').style.display = 'none';
@@ -155,10 +174,13 @@ async function refreshGmailStatus() {
 }
 
 document.getElementById('connectGmailBtn')?.addEventListener('click', async () => {
-    const token = await getToken();
-    if (!token) return;
     try {
-        const res = await fetch('/api/gmail/auth-url', { headers: { 'Authorization': `Bearer ${token}` } });
+        const hintDefault = (localStorage.getItem('uah-gmail-address') || getLoginEmail() || '').trim();
+        const gmail = prompt('Enter your Gmail address to connect:', hintDefault);
+        if (!gmail) return;
+        const gmailAddr = gmail.trim().toLowerCase();
+        localStorage.setItem('uah-gmail-address', gmailAddr);
+        const res = await fetch('/api/gmail/auth-url', { headers: await getAuthHeaders({ 'X-Gmail-Address': gmailAddr }) });
         const data = await res.json();
         if (res.ok && data.url) window.location.href = data.url;
         else alert(data.error || 'Could not get Gmail auth URL');
@@ -169,10 +191,8 @@ document.getElementById('connectGmailBtn')?.addEventListener('click', async () =
 });
 
 async function loadWatchedSenders() {
-    const token = await getToken();
-    if (!token) return;
     try {
-        const res = await fetch('/api/gmail/watched-senders', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch('/api/gmail/watched-senders', { headers: await getAuthHeaders() });
         const list = await res.json();
         const container = document.getElementById('watchedSendersList');
         if (!container) return;
@@ -192,10 +212,8 @@ async function loadWatchedSenders() {
 }
 
 window.removeWatchedSender = async function(id) {
-    const token = await getToken();
-    if (!token) return;
     try {
-        await fetch(`/api/gmail/watched-senders/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        await fetch(`/api/gmail/watched-senders/${id}`, { method: 'DELETE', headers: await getAuthHeaders() });
         loadWatchedSenders();
     } catch (err) {
         console.error(err);
@@ -209,12 +227,10 @@ document.getElementById('addSenderBtn')?.addEventListener('click', async () => {
         alert('Enter sender email and display name.');
         return;
     }
-    const token = await getToken();
-    if (!token) return;
     try {
         const res = await fetch('/api/gmail/watched-senders', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ sender_email: email, display_name: name })
         });
         if (res.ok) {
@@ -231,18 +247,16 @@ document.getElementById('addSenderBtn')?.addEventListener('click', async () => {
 });
 
 document.getElementById('syncGmailBtn')?.addEventListener('click', async () => {
-    const token = await getToken();
-    if (!token) return;
     const btn = document.getElementById('syncGmailBtn');
     btn.disabled = true;
     btn.textContent = 'Syncing…';
     try {
-        const res = await fetch('/api/gmail/sync', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch('/api/gmail/sync', { method: 'POST', headers: await getAuthHeaders() });
         const data = await res.json();
         if (res.ok) {
-            loadEmailNotifications();
+            loadUnseenBySender();
             updateUnseenBadge(await fetchUnseenCount());
-            if (data.newCount > 0) showToast(`You received ${data.newCount} new email(s) from watched senders.`);
+            if (data.newCount > 0) showToast(`You have ${data.newCount} new unseen email(s) from watched senders.`);
         } else alert(data.error || 'Sync failed');
     } catch (err) {
         console.error(err);
@@ -253,27 +267,24 @@ document.getElementById('syncGmailBtn')?.addEventListener('click', async () => {
     }
 });
 
-// ----- Email notifications list -----
-async function loadEmailNotifications() {
-    const token = await getToken();
-    if (!token) return;
+// ----- Unseen counts grouped by sender (no mail content) -----
+async function loadUnseenBySender() {
     try {
-        const res = await fetch('/api/notifications/email', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch('/api/notifications/email/unseen-by-sender', { headers: await getAuthHeaders() });
         const list = await res.json();
         const container = document.getElementById('emailNotificationsList');
         if (!container) return;
-        if (!list.length) {
-            container.innerHTML = '<p style="color: var(--text-muted);">No email notifications yet. Add watched senders and sync.</p>';
+        if (!Array.isArray(list) || list.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted);">No unseen emails from watched senders. Add senders and sync.</p>';
             return;
         }
-        container.innerHTML = list.map(n => `
-            <div class="email-notification-card ${n.seen ? '' : 'unseen'}" data-id="${n.id}">
+        container.innerHTML = list.map(s => `
+            <div class="email-notification-card unseen">
                 <div>
-                    <div class="from-msg">You received an email from ${(n.from_name || n.from_email || 'Unknown')}</div>
-                    <div class="time">${new Date(n.received_at).toLocaleString()}</div>
-                    ${n.subject ? `<div style="font-size:0.85rem; color: var(--text-muted); margin-top:4px;">${n.subject}</div>` : ''}
+                    <div class="from-msg">${(s.from_name || s.from_email || 'Unknown')}</div>
+                    <div class="time">${(s.from_email || '').replace(/</g, '&lt;')}</div>
                 </div>
-                ${!n.seen ? `<button type="button" class="btn-sm btn-secondary" onclick="markEmailSeen('${n.id}')">Mark seen</button>` : ''}
+                <div style="font-weight:800; color: var(--accent); font-size:1.2rem;">${s.count || 0}</div>
             </div>
         `).join('');
     } catch (err) {
@@ -281,24 +292,10 @@ async function loadEmailNotifications() {
     }
 }
 
-window.markEmailSeen = async function(id) {
-    const token = await getToken();
-    if (!token) return;
-    try {
-        await fetch(`/api/notifications/email/${id}/seen`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${token}` } });
-        loadEmailNotifications();
-        updateUnseenBadge(await fetchUnseenCount());
-    } catch (err) {
-        console.error(err);
-    }
-};
-
 document.getElementById('markAllSeenBtn')?.addEventListener('click', async () => {
-    const token = await getToken();
-    if (!token) return;
     try {
-        await fetch('/api/notifications/email/mark-all-seen', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-        loadEmailNotifications();
+        await fetch('/api/notifications/email/mark-all-seen', { method: 'POST', headers: await getAuthHeaders() });
+        loadUnseenBySender();
         lastUnseenCount = 0;
         updateUnseenBadge(0);
     } catch (err) {
@@ -308,10 +305,8 @@ document.getElementById('markAllSeenBtn')?.addEventListener('click', async () =>
 
 // ----- Unseen count badge & toast -----
 async function fetchUnseenCount() {
-    const token = await getToken();
-    if (!token) return 0;
     try {
-        const res = await fetch('/api/notifications/email/unseen-count', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch('/api/notifications/email/unseen-count', { headers: await getAuthHeaders() });
         const data = await res.json();
         return res.ok ? (data.count || 0) : 0;
     } catch (_) {
@@ -349,6 +344,7 @@ function startUnseenCountPolling() {
         }
         lastUnseenCount = count;
         updateUnseenBadge(count);
+        loadUnseenBySender();
     };
     poll();
     pollUnseenInterval = setInterval(poll, 30000);
