@@ -167,6 +167,26 @@
         }
         .date-group { margin-bottom: 20px; }
         .date-header { font-weight: 600; margin-bottom: 10px; color: var(--accent); }
+        .timetable-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--accent);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .timetable-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
         @media (max-width: 900px) {
             .sidebar { display: none; }
             .content { margin-left: 0; padding: 20px; }
@@ -244,6 +264,8 @@
         <h2 class="section-title">Upcoming One-Time Events</h2>
         <div class="one-time-list" id="oneTimeEvents"></div>
     </main>
+
+    <div id="timetableToast" class="timetable-toast" aria-live="polite"></div>
 
     <script src="/js/common.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
