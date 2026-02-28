@@ -174,23 +174,6 @@
             box-shadow: var(--shadow);
         }
 
-        /* --- STATS GRID --- */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .stat-box {
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
-
         /* --- FEATURE CARDS --- */
         .feature-grid {
             display: grid;
@@ -305,21 +288,6 @@
                 <span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span>
             </button>
         </header>
-
-        <div class="stats-grid">
-            <div class="stat-box">
-                <h2 style="color: #48bb78; margin:0;">32%</h2>
-                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top:5px; text-transform:uppercase;">Mess Occupancy</p>
-            </div>
-            <div class="stat-box">
-                <h2 style="margin:0;">05</h2>
-                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top:5px; text-transform:uppercase;">Classes Today</p>
-            </div>
-            <div class="stat-box">
-                <h2 style="color: var(--accent-secondary); margin:0;">02</h2>
-                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top:5px; text-transform:uppercase;">Lost Items</p>
-            </div>
-        </div>
 
         <div class="feature-grid" id="featureGrid">
             <div class="feature-card">
