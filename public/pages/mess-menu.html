@@ -175,6 +175,7 @@
     </style>
 </head>
 <body>
+    <script>if(localStorage.getItem('uah-theme')==='dark')document.body.classList.add('dark-mode');</script>
 
     <nav class="sidebar">
         <div class="logo">UAH IITJ</div>
@@ -185,6 +186,12 @@
             <a href="/pages/notifications.html">📢 Notices</a>
             <a href="/pages/lost-found.html">🔍 Lost & Found</a>
             <a href="/pages/timetable-personal.html">📅 My Timetable</a>
+            <a href="/pages/timetable-course.html">📚 Course Timetable</a>
+            <a href="/pages/academic-calendar.html">📆 Academic Calendar</a>
+            <a href="/pages/phc-timetable.html">🏥 PHC Timetable</a>
+            <a href="/pages/qr-tab.html">📱 QR Wallet</a>
+            <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/restaurant-ordering.html">🍕 Order Food</a>
         </div>
     </nav>
 
@@ -194,7 +201,7 @@
                 <h1>Mess Menu 🍲</h1>
                 <p style="color: var(--text-muted);">Weekly dining schedule</p>
             </div>
-            <button class="theme-btn" id="themeToggle">🌙 Dark Mode</button>
+            <button class="theme-btn" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span></button>
         </header>
 
         <div class="category-tabs">
@@ -232,21 +239,8 @@
         </div>
     </main>
 
+    <script src="/js/common.js"></script>
     <script>
-        // Theme Toggle Logic
-        const themeBtn = document.getElementById('themeToggle');
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            themeBtn.innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
-            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
-        });
-
-        if(localStorage.getItem('uah-theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeBtn.innerText = '☀️ Light Mode';
-        }
-
         // Simple Tab Logic
         const tabs = document.querySelectorAll('.category-tab');
         tabs.forEach(tab => {
