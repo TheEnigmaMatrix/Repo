@@ -44,13 +44,13 @@
       if (user.email) localStorage.setItem('uah-login-email', user.email);
       return user;
     }
-    // No Supabase session: allow access if email was entered (easy dashboard open).
+    // No Supabase session: if email was entered on login page, allow access (same email = same user).
     var email = localStorage.getItem('uah-login-email');
     if (email && email.trim()) {
       window.uahCurrentUser = { id: null, email: email.trim() };
       return window.uahCurrentUser;
     }
-    window.location.href = (window.location.pathname.replace(/\/[^/]+$/, '') || '/') + '/';
+    window.location.replace('/index.html');
     return null;
   }
 

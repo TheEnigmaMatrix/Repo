@@ -18,7 +18,7 @@ async function loadAcademicCalendarImage() {
       container.className = '';
       var ts = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
       var src = data.imageUrl + (data.imageUrl.includes('?') ? '&' : '?') + 't=' + ts;
-      container.innerHTML = `<img src="${src}" alt="Academic calendar" loading="lazy">`;
+      container.innerHTML = `<img src="${src}" alt="Academic calendar" loading="lazy" crossorigin="">`;
     } else {
       container.className = 'empty';
       container.textContent = 'No academic calendar image uploaded yet. Upload one above to save it forever.';
@@ -51,9 +51,11 @@ document.getElementById('uploadAcademicCalendarForm')?.addEventListener('submit'
     });
     const data = await res.json();
     if (res.ok) {
-      alert('Academic calendar image saved.');
       fileInput.value = '';
       loadAcademicCalendarImage();
+      setTimeout(loadAcademicCalendarImage, 800);
+      if (typeof showToast === 'function') showToast('Saved', 'Academic calendar image saved. It will appear above.', '📆');
+      else alert('Academic calendar image saved.');
     } else {
       alert(data.error || 'Upload failed');
     }

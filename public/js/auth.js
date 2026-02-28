@@ -1,74 +1,27 @@
-const supabase = window.uahSupabase;
-if (!supabase) {
-    console.error('Supabase client not initialized. Make sure /js/supabase-client.js is loaded.');
+function goToDashboard() {
+    sessionStorage.setItem('uah-just-logged-in', '1');
+    var path = (window.location.pathname || '').replace(/\/index\.html?$/i, '').replace(/\/?$/, '') || '';
+    var dashboardPath = (path ? path + '/' : '/') + 'dashboard.html';
+    window.location.replace(dashboardPath);
 }
 
-// If already logged in, go to dashboard.
-supabase?.auth.getUser().then(({ data: { user } }) => {
-    if (user) {
-        if (user.email) localStorage.setItem('uah-login-email', user.email);
-        window.location.href = '/dashboard.html';
-    }
-});
+// If we already have an email saved, go straight to dashboard (optional: uncomment to auto-redirect returning users)
+// var saved = localStorage.getItem('uah-login-email');
+// if (saved && saved.trim()) { goToDashboard(); return; }
 
-// Prefill login email from last use.
-const savedEmail = localStorage.getItem('uah-login-email');
-const loginEmailEl = document.getElementById('login-email');
-if (savedEmail && loginEmailEl && !loginEmailEl.value) loginEmailEl.value = savedEmail;
+// Prefill email from last use
+var loginEmailEl = document.getElementById('login-email');
+var savedEmail = localStorage.getItem('uah-login-email');
+if (savedEmail && loginEmailEl) loginEmailEl.value = savedEmail;
 
-// Save email whenever user types it (so it's always saved for this session and next time).
-if (loginEmailEl) {
-    loginEmailEl.addEventListener('blur', function () {
-        const email = (this.value || '').trim();
-        if (email) localStorage.setItem('uah-login-email', email);
-    });
-    loginEmailEl.addEventListener('input', function () {
-        const email = (this.value || '').trim();
-        if (email) localStorage.setItem('uah-login-email', email);
+// Login: save email, open dashboard
+var loginForm = document.getElementById('login-form');
+if (loginForm) {
+    loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = (document.getElementById('login-email').value || '').trim();
+        if (!email) return;
+        localStorage.setItem('uah-login-email', email);
+        goToDashboard();
     });
 }
-
-// Login: if email is filled, always open dashboard (no password check).
-document.getElementById('login-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    const email = (document.getElementById('login-email').value || '').trim();
-    const password = (document.getElementById('login-password').value || '').trim();
-    if (!email || !password) {
-        alert('Please enter your email and password.');
-        return;
-    }
-    try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            alert(error.message || 'Login failed');
-            return;
-        }
-        if (data?.user?.email) localStorage.setItem('uah-login-email', data.user.email);
-        sessionStorage.setItem('uah-just-logged-in', '1');
-        var base = window.location.pathname.replace(/\/index\.html?$/i, '').replace(/\/?$/, '') || '';
-        window.location.replace(base + '/dashboard.html');
-    } catch (err) {
-        console.error(err);
-        alert('Login failed. Please try again.');
-    }
-});
-
-// Signup
-document.getElementById('signup-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fullName = document.getElementById('signup-name').value;
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
-
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } }
-    });
-    if (error) {
-        alert(error.message);
-    } else {
-        alert('Signup successful! Please check your email for confirmation.');
-        // Optionally redirect to login or stay
-    }
-});

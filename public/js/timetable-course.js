@@ -18,7 +18,7 @@ async function loadCourseTimetableImage() {
       container.className = '';
       var ts = data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now();
       var src = data.imageUrl + (data.imageUrl.includes('?') ? '&' : '?') + 't=' + ts;
-      container.innerHTML = `<img src="${src}" alt="Course timetable" loading="lazy">`;
+      container.innerHTML = `<img src="${src}" alt="Course timetable" loading="lazy" crossorigin="">`;
     } else {
       container.className = 'empty';
       container.textContent = 'No course timetable image uploaded yet. Upload one above to save it forever.';
@@ -51,9 +51,11 @@ document.getElementById('uploadCourseTimetableForm')?.addEventListener('submit',
     });
     const data = await res.json();
     if (res.ok) {
-      alert('Course timetable image saved.');
       fileInput.value = '';
       loadCourseTimetableImage();
+      setTimeout(loadCourseTimetableImage, 800);
+      if (typeof showToast === 'function') showToast('Saved', 'Course timetable image saved. It will appear above.', '📚');
+      else alert('Course timetable image saved.');
     } else {
       alert(data.error || 'Upload failed');
     }
