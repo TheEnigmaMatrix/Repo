@@ -475,54 +475,51 @@ app.delete('/api/qrcodes/:id', authenticate, async (req, res) => {
   }
 });
 
-// ----- Bus Schedule -----
-app.get('/api/bus-schedule', async (req, res) => {
+// ----- Bus Schedule (image: admin uploads, students view) -----
+// Table required: bus_schedule_image (id int primary key default 1, image_url text, updated_at timestamptz, updated_by uuid)
+// Storage bucket required: bus-schedule (public)
+
+app.get('/api/bus-schedule/image', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('bus_schedules')
-      .select('*')
-      .order('route_name')
-      .order('arrival_time');
+      .from('bus_schedule_image')
+      .select('image_url')
+      .eq('id', 1)
+      .maybeSingle();
     if (error) throw error;
-    res.json(data);
+    res.json({ imageUrl: data?.image_url || null });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/bus-schedule', authenticate, async (req, res) => {
+app.post('/api/bus-schedule/image', authenticate, upload.single('scheduleImage'), async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
     if (!admin) return res.status(403).json({ error: 'Admin access required' });
 
-    const { routeName, stopName, arrivalTime } = req.body;
-    if (!routeName || !stopName || !arrivalTime) {
-      return res.status(400).json({ error: 'Missing fields' });
+    if (!req.file || !req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Please upload an image file (e.g. PNG, JPG)' });
     }
-    const { data, error } = await supabase
-      .from('bus_schedules')
-      .insert({ route_name: routeName, stop_name: stopName, arrival_time: arrivalTime })
-      .select();
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
-app.delete('/api/bus-schedule/:id', authenticate, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Admin access required' });
+    const ext = req.file.originalname.split('.').pop() || 'png';
+    const fileName = `current.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from('bus-schedule')
+      .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: true });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from('bus-schedule').getPublicUrl(fileName);
 
-    const { id } = req.params;
-    const { error } = await supabase
-      .from('bus_schedules')
-      .delete()
-      .eq('id', id);
-    if (error) throw error;
-    res.json({ message: 'Bus schedule deleted' });
+    const { error: dbError } = await supabase
+      .from('bus_schedule_image')
+      .upsert(
+        { id: 1, image_url: publicUrl, updated_at: new Date().toISOString(), updated_by: req.user.id },
+        { onConflict: 'id' }
+      );
+    if (dbError) throw dbError;
+    res.json({ imageUrl: publicUrl });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
