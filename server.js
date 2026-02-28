@@ -291,6 +291,7 @@ app.get('/api/notifications', async (req, res) => {
   }
 });
 
+
 app.post('/api/notifications', authenticate, async (req, res) => {
   try {
     const admin = await isAdmin(req.supabase, req.user.id);
