@@ -15,6 +15,11 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANO
 
 // Middleware
 app.use(express.json());
+
+// Fix "Cannot GET /pages/" – redirect bare /pages/ or /pages to dashboard (before static)
+app.get('/pages', (req, res) => res.redirect('/dashboard.html'));
+app.get('/pages/', (req, res) => res.redirect('/dashboard.html'));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ========== AUTHENTICATION MIDDLEWARE ==========

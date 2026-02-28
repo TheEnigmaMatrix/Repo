@@ -7,29 +7,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
-body{
-    margin:0;
-    font-family:sans-serif;
-    background:#f0f4f8;
-}
-
-#viewer{
-    width:100%;
-    max-width:1000px;
-    margin:auto;
-    padding:20px;
-}
-
-canvas{
-    width:100%;
-    margin-bottom:20px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.15);
-    border-radius:12px;
-    background:white;
-}
+body{ margin:0; font-family:sans-serif; background:#f0f4f8; }
+#viewer{ width:100%; max-width:1000px; margin:auto; padding:20px; }
+canvas{ width:100%; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,0.15); border-radius:12px; background:white; }
+.my-calendar-section { max-width: 1000px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+.my-calendar-section h3 { margin-top: 0; }
+.my-calendar-section .empty { color: #666; padding: 20px; }
+.my-calendar-section img { max-width: 100%; height: auto; border-radius: 12px; margin-top: 15px; }
 </style>
 </head>
 <body>
+
+<div class="my-calendar-section">
+  <h3>📆 My saved calendar image</h3>
+  <p style="color:#666; font-size:0.9rem;">Upload an image and it will be saved to your account. Same email = same user; you’ll see it whenever you log in.</p>
+  <form id="uploadAcademicCalendarForm">
+    <input type="file" id="academicCalendarImageInput" name="image" accept="image/*">
+    <button type="submit">Upload image</button>
+  </form>
+  <div id="academicCalendarDisplay" class="empty">Loading…</div>
+</div>
 
 <div id="viewer">Loading calendar...</div>
 
@@ -66,6 +63,11 @@ pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
     }
 });
 </script>
+
+<script src="/js/common.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase-client.js"></script>
+<script src="/js/academic-calendar.js"></script>
 
 </body>
 </html>
