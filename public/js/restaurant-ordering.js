@@ -87,26 +87,42 @@ async function loadRestaurants() {
     }
 }
 
-// Display restaurants
+// Fixed delivery services (always shown first)
+const FIXED_SERVICES = [
+    { name: 'Zomato', url: 'https://www.zomato.com/', icon: '🍽️' },
+    { name: 'Swiggy', url: 'https://www.swiggy.com/', icon: '🛵' }
+];
+
+// Display restaurants: Zomato & Swiggy first, then any from API
 function displayRestaurants(restaurants) {
     const container = document.getElementById('restaurantList');
-    if (!restaurants || restaurants.length === 0) {
-        container.innerHTML = '<div class="no-restaurants">No restaurants available.</div>';
-        return;
-    }
+    if (!container) return;
 
-    let html = '<div class="restaurant-grid">';
-    restaurants.forEach(r => {
+    let html = '';
+    // Always show Zomato and Swiggy first
+    FIXED_SERVICES.forEach(s => {
         html += `
-            <div class="restaurant-card" data-id="${r.id}">
-                ${r.logo_url ? `<img src="${r.logo_url}" alt="${r.name}" class="restaurant-logo">` : ''}
-                <div class="restaurant-name">${r.name}</div>
-                <a href="${r.url}" target="_blank" rel="noopener noreferrer" class="order-btn">Order Now</a>
-                ${isAdminUser ? `<button class="delete-btn" onclick="deleteRestaurant('${r.id}')">Delete</button>` : ''}
+            <div class="restaurant-card">
+                <div class="res-logo">${s.icon}</div>
+                <h3>${s.name}</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Order food delivery</p>
+                <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="order-btn">Order Now</a>
             </div>
         `;
     });
-    html += '</div>';
+    // Then any from API (admin-added)
+    if (restaurants && restaurants.length > 0) {
+        restaurants.forEach(r => {
+            html += `
+                <div class="restaurant-card" data-id="${r.id}">
+                    ${r.logo_url ? `<img src="${r.logo_url}" alt="${r.name}" class="res-logo">` : '<div class="res-logo" style="font-size: 2rem; line-height: 80px;">🍕</div>'}
+                    <h3>${r.name}</h3>
+                    <a href="${r.url}" target="_blank" rel="noopener noreferrer" class="order-btn">Order Now</a>
+                    ${isAdminUser ? `<button class="delete-btn" onclick="deleteRestaurant('${r.id}')">Delete</button>` : ''}
+                </div>
+            `;
+        });
+    }
     container.innerHTML = html;
 }
 
