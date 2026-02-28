@@ -253,16 +253,23 @@
     </style>
 </head>
 <body>
+    <script>if(localStorage.getItem('uah-theme')==='dark')document.body.classList.add('dark-mode');</script>
 
     <nav class="sidebar">
         <div class="logo">UAH IITJ</div>
         <div class="nav-links">
-            <a href="#" class="active">🏠 Dashboard</a>
+            <a href="/dashboard.html" class="active">🏠 Dashboard</a>
             <a href="/pages/mess-crowd.html">🍽️ Mess Crowd</a>
+            <a href="/pages/mess-menu.html">🍲 Mess Menu</a>
             <a href="/pages/notifications.html">📢 Notices</a>
-            <a href="/pages/timetable-personal.html">📅 Timetable</a>
+            <a href="/pages/lost-found.html">🔍 Lost & Found</a>
+            <a href="/pages/timetable-personal.html">📅 My Timetable</a>
+            <a href="/pages/timetable-course.html">📚 Course Timetable</a>
+            <a href="/pages/academic-calendar.html">📆 Academic Calendar</a>
+            <a href="/pages/phc-timetable.html">🏥 PHC Timetable</a>
             <a href="/pages/qr-tab.html">📱 QR Wallet</a>
             <a href="/pages/bus-schedule.html">🚌 Bus Schedule</a>
+            <a href="/pages/restaurant-ordering.html">🍕 Order Food</a>
         </div>
     </nav>
 
@@ -305,9 +312,9 @@
                 <a href="/pages/mess-crowd.html" class="btn-fresh">Check Status</a>
             </div>
             <div class="feature-card">
-                <h3>🔍 Lost & Found</h3>
-                <p>Browse reported items or post a lost item alert to the campus.</p>
-                <a href="/pages/lost-found.html" class="btn-fresh">Browse Items</a>
+                <h3>🍲 Mess Menu</h3>
+                <p>View today's mess menu and meal timings.</p>
+                <a href="/pages/mess-menu.html" class="btn-fresh">View Menu</a>
             </div>
             <div class="feature-card">
                 <h3>📢 Notices</h3>
@@ -315,9 +322,44 @@
                 <a href="/pages/notifications.html" class="btn-fresh">View All</a>
             </div>
             <div class="feature-card">
+                <h3>🔍 Lost & Found</h3>
+                <p>Browse reported items or post a lost item alert to the campus.</p>
+                <a href="/pages/lost-found.html" class="btn-fresh">Browse Items</a>
+            </div>
+            <div class="feature-card">
+                <h3>📅 My Timetable</h3>
+                <p>Manage your weekly and one-time events.</p>
+                <a href="/pages/timetable-personal.html" class="btn-fresh">My Timetable</a>
+            </div>
+            <div class="feature-card">
+                <h3>📚 Course Timetable</h3>
+                <p>View course-wise class schedules.</p>
+                <a href="/pages/timetable-course.html" class="btn-fresh">Course Timetable</a>
+            </div>
+            <div class="feature-card">
+                <h3>📆 Academic Calendar</h3>
+                <p>Important academic dates and calendar.</p>
+                <a href="/pages/academic-calendar.html" class="btn-fresh">View Calendar</a>
+            </div>
+            <div class="feature-card">
+                <h3>🏥 PHC Timetable</h3>
+                <p>Primary Health Centre doctor and facility timings.</p>
+                <a href="/pages/phc-timetable.html" class="btn-fresh">PHC Schedule</a>
+            </div>
+            <div class="feature-card">
                 <h3>📱 QR Wallet</h3>
                 <p>One-tap access to your Mess ID and Library entry codes.</p>
                 <a href="/pages/qr-tab.html" class="btn-fresh">Open Wallet</a>
+            </div>
+            <div class="feature-card">
+                <h3>🚌 Bus Schedule</h3>
+                <p>Campus and city bus timings and routes.</p>
+                <a href="/pages/bus-schedule.html" class="btn-fresh">Bus Schedule</a>
+            </div>
+            <div class="feature-card">
+                <h3>🍕 Order Food</h3>
+                <p>Order from campus restaurants and cafes.</p>
+                <a href="/pages/restaurant-ordering.html" class="btn-fresh">Order Food</a>
             </div>
         </div>
     </main>
@@ -333,34 +375,16 @@
     </div>
 
     <nav class="mobile-nav">
-        <a href="#" style="text-decoration:none;">🏠</a>
-        <a href="#" style="text-decoration:none;">🍽️</a>
-        <a href="#" style="text-decoration:none;">📢</a>
-        <a href="#" style="text-decoration:none;">📱</a>
+        <a href="/dashboard.html" style="text-decoration:none;">🏠</a>
+        <a href="/pages/mess-crowd.html" style="text-decoration:none;">🍽️</a>
+        <a href="/pages/notifications.html" style="text-decoration:none;">📢</a>
+        <a href="/pages/timetable-personal.html" style="text-decoration:none;">📅</a>
+        <a href="/pages/qr-tab.html" style="text-decoration:none;">📱</a>
+        <a href="/pages/bus-schedule.html" style="text-decoration:none;">🚌</a>
     </nav>
 
+    <script src="/js/common.js"></script>
     <script>
-        // --- THEME TOGGLE LOGIC ---
-        const themeBtn = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        const themeText = document.getElementById('themeText');
-        
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            themeIcon.innerText = isDark ? '☀️' : '🌙';
-            themeText.innerText = isDark ? 'Light Mode' : 'Dark Mode';
-            localStorage.setItem('uah-theme', isDark ? 'dark' : 'light');
-            showToast('Theme Updated', `Switched to ${isDark ? 'Dark' : 'Light'} mode`, isDark ? '🌙' : '☀️');
-        });
-
-        // Load preference
-        if(localStorage.getItem('uah-theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeIcon.innerText = '☀️';
-            themeText.innerText = 'Light Mode';
-        }
-
         // --- SEARCH LOGIC ---
         const searchInput = document.getElementById('searchInput');
         const cards = document.querySelectorAll('.feature-card');
@@ -374,17 +398,26 @@
         });
 
         // --- TOAST LOGIC ---
-        function showToast(title, msg, icon = '🔔') {
+        function showToast(title, msg, icon) {
+            if (typeof icon === 'undefined') icon = '🔔';
             const toast = document.getElementById('notification-toast');
             document.getElementById('toast-title').innerText = title;
             document.getElementById('toast-msg').innerText = msg;
             document.getElementById('toast-icon').innerText = icon;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 4000);
+            setTimeout(function () { toast.classList.remove('show'); }, 4000);
         }
 
         // Welcome Toast
-        setTimeout(() => showToast('UAH Hub Live', 'Welcome back to the dashboard!', '🚀'), 1000);
+        setTimeout(function () { showToast('UAH Hub Live', 'Welcome back to the dashboard!', '🚀'); }, 1000);
+
+        // Toast on theme change
+        document.getElementById('themeToggle').addEventListener('click', function () {
+            setTimeout(function () {
+                var isDark = document.body.classList.contains('dark-mode');
+                showToast('Theme Updated', 'Switched to ' + (isDark ? 'Dark' : 'Light') + ' mode', isDark ? '🌙' : '☀️');
+            }, 0);
+        });
     </script>
 </body>
 </html>
