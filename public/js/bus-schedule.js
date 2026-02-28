@@ -3,7 +3,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Logout
-document.getElementById('logout').addEventListener('click', async () => {
+document.getElementById('logout')?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.href = '/';
 });
@@ -31,16 +31,37 @@ supabase.auth.getUser().then(async ({ data: { user } }) => {
     if (profile) {
         isAdminUser = profile.role === 'admin';
         if (isAdminUser) {
-            document.getElementById('adminSection').style.display = 'block';
+            const el = document.getElementById('adminSection');
+            if (el) el.style.display = 'block';
         }
     }
+    loadBusScheduleImage();
 });
 
-// Load bus schedules on page load
-loadBusSchedules();
+// Load and display the bus schedule image (for all users)
+async function loadBusScheduleImage() {
+    const container = document.getElementById('busScheduleList');
+    if (!container) return;
+    try {
+        const res = await fetch('/api/bus-schedule/image');
+        const data = await res.json();
+        if (res.ok && data.imageUrl) {
+            container.innerHTML = `
+                <div class="schedule-image-card">
+                    <img src="${data.imageUrl}" alt="Bus schedule" loading="lazy">
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div class="no-schedule">No bus schedule image uploaded yet. Check back later or ask an admin to upload one.</div>';
+        }
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="no-schedule">Unable to load bus schedule. Please try again later.</div>';
+    }
+}
 
-// Admin form submission
-document.getElementById('addBusForm')?.addEventListener('submit', async (e) => {
+// Admin: upload bus schedule image
+document.getElementById('uploadScheduleForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!isAdminUser) {
         alert('You are not authorized.');
@@ -49,101 +70,38 @@ document.getElementById('addBusForm')?.addEventListener('submit', async (e) => {
     const token = await getToken();
     if (!token) return;
 
-    const routeName = document.getElementById('routeName').value;
-    const stopName = document.getElementById('stopName').value;
-    const arrivalTime = document.getElementById('arrivalTime').value;
-
-    try {
-        const res = await fetch('/api/bus-schedule', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ routeName, stopName, arrivalTime })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            alert('Schedule added!');
-            document.getElementById('addBusForm').reset();
-            loadBusSchedules();
-        } else {
-            alert(data.error);
-        }
-    } catch (err) {
-        console.error(err);
-        alert('Failed to add schedule');
+    const fileInput = document.getElementById('scheduleImageInput');
+    if (!fileInput?.files?.length) {
+        alert('Please select an image file.');
+        return;
     }
-});
-
-// Load schedules
-async function loadBusSchedules() {
-    try {
-        const res = await fetch('/api/bus-schedule');
-        const schedules = await res.json();
-        displayBusSchedules(schedules);
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-// Display schedules grouped by route
-function displayBusSchedules(schedules) {
-    const container = document.getElementById('busScheduleList');
-    if (!schedules || schedules.length === 0) {
-        container.innerHTML = '<div class="no-schedule">No bus schedules available.</div>';
+    const file = fileInput.files[0];
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (e.g. PNG, JPG).');
         return;
     }
 
-    // Group by route_name
-    const grouped = {};
-    schedules.forEach(item => {
-        if (!grouped[item.route_name]) grouped[item.route_name] = [];
-        grouped[item.route_name].push(item);
-    });
+    const formData = new FormData();
+    formData.append('scheduleImage', file);
 
-    let html = '';
-    for (const route in grouped) {
-        // Sort stops by arrival time
-        grouped[route].sort((a, b) => a.arrival_time.localeCompare(b.arrival_time));
-        html += `<div class="route-group card">`;
-        html += `<div class="route-title">${route}</div>`;
-        grouped[route].forEach(stop => {
-            html += `
-                <div class="stop-row" data-id="${stop.id}">
-                    <div class="stop-name">${stop.stop_name}</div>
-                    <div class="stop-time">${stop.arrival_time.slice(0,5)}</div>
-                    ${isAdminUser ? `
-                        <div class="stop-actions">
-                            <button class="delete-btn" onclick="deleteSchedule('${stop.id}')">Delete</button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        });
-        html += `</div>`;
-    }
-    container.innerHTML = html;
-}
-
-// Delete schedule (admin only)
-window.deleteSchedule = async function(id) {
-    if (!isAdminUser) return;
-    if (!confirm('Delete this schedule entry?')) return;
-    const token = await getToken();
-    if (!token) return;
     try {
-        const res = await fetch(`/api/bus-schedule/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch('/api/bus-schedule/image', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
         });
+        const data = await res.json();
         if (res.ok) {
-            loadBusSchedules();
+            alert('Bus schedule image uploaded successfully.');
+            fileInput.value = '';
+            loadBusScheduleImage();
         } else {
-            const data = await res.json();
-            alert(data.error);
+            alert(data.error || 'Upload failed');
         }
     } catch (err) {
         console.error(err);
+        alert('Failed to upload image');
     }
-};
+});
