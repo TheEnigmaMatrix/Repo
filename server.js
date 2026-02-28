@@ -1,9 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const { google } = require('googleapis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -322,6 +324,274 @@ app.delete('/api/notifications/:id', authenticate, async (req, res) => {
     res.json({ message: 'Notification deleted' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ----- Gmail / Email notifications (student: connect Gmail, watch senders, get "email from X" alerts) -----
+const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+const STATE_SECRET = process.env.GMAIL_STATE_SECRET || process.env.SUPABASE_JWT_SECRET || 'gmail-state-secret-change-me';
+
+function createGmailOAuth2() {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GMAIL_REDIRECT_URI || `${process.env.BASE_URL || 'http://localhost:3000'}/api/gmail/callback`
+  );
+}
+
+function createState(userId) {
+  const payload = Buffer.from(userId, 'utf8').toString('base64url');
+  const sig = crypto.createHmac('sha256', STATE_SECRET).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+function verifyState(state) {
+  if (!state || !state.includes('.')) return null;
+  const [payload, sig] = state.split('.');
+  const expected = crypto.createHmac('sha256', STATE_SECRET).update(payload).digest('base64url');
+  if (sig !== expected) return null;
+  try {
+    return Buffer.from(payload, 'base64url').toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
+app.get('/api/gmail/auth-url', authenticate, (req, res) => {
+  try {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(503).json({ error: 'Gmail integration not configured' });
+    }
+    const oauth2 = createGmailOAuth2();
+    const state = createState(req.user.id);
+    const url = oauth2.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: GMAIL_SCOPES,
+      state,
+    });
+    res.json({ url });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/gmail/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    const userId = verifyState(state);
+    if (!userId || !code) {
+      return res.redirect('/pages/notifications.html?gmail=error');
+    }
+    const oauth2 = createGmailOAuth2();
+    const { tokens } = await oauth2.getToken(code);
+    const { error } = await supabase.from('gmail_tokens').upsert({
+      user_id: userId,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || null,
+      expiry_date: tokens.expiry_date || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    if (error) throw error;
+    res.redirect('/pages/notifications.html?gmail=connected');
+  } catch (err) {
+    console.error(err);
+    res.redirect('/pages/notifications.html?gmail=error');
+  }
+});
+
+app.get('/api/gmail/status', authenticate, async (req, res) => {
+  try {
+    const { data } = await supabase.from('gmail_tokens').select('user_id').eq('user_id', req.user.id).maybeSingle();
+    res.json({ connected: !!data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/gmail/watched-senders', authenticate, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('gmail_watched_senders')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/gmail/watched-senders', authenticate, async (req, res) => {
+  try {
+    const { sender_email, display_name } = req.body;
+    if (!sender_email || !display_name) {
+      return res.status(400).json({ error: 'sender_email and display_name required' });
+    }
+    const email = String(sender_email).trim().toLowerCase();
+    const name = String(display_name).trim();
+    const { data, error } = await supabase
+      .from('gmail_watched_senders')
+      .insert({ user_id: req.user.id, sender_email: email, display_name: name })
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/gmail/watched-senders/:id', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('gmail_watched_senders')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/notifications/email', authenticate, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('email_notifications')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('received_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/notifications/email/unseen-count', authenticate, async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from('email_notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.user.id)
+      .eq('seen', false);
+    if (error) throw error;
+    res.json({ count: count || 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/notifications/email/:id/seen', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabase
+      .from('email_notifications')
+      .update({ seen: true })
+      .eq('id', id)
+      .eq('user_id', req.user.id);
+    if (error) throw error;
+    res.json({ message: 'Marked as seen' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/notifications/email/mark-all-seen', authenticate, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('email_notifications')
+      .update({ seen: true })
+      .eq('user_id', req.user.id);
+    if (error) throw error;
+    res.json({ message: 'All marked as seen' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sync Gmail: fetch recent messages from watched senders and create email_notifications
+async function getValidGmailClient(userId) {
+  const { data: row, error } = await supabase
+    .from('gmail_tokens')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  if (error || !row) return null;
+  const oauth2 = createGmailOAuth2();
+  oauth2.setCredentials({
+    access_token: row.access_token,
+    refresh_token: row.refresh_token,
+    expiry_date: row.expiry_date,
+  });
+  if (row.expiry_date && row.expiry_date < Date.now()) {
+    const { credentials } = await oauth2.refreshAccessToken();
+    await supabase.from('gmail_tokens').update({
+      access_token: credentials.access_token,
+      expiry_date: credentials.expiry_date,
+      updated_at: new Date().toISOString(),
+    }).eq('user_id', userId);
+    oauth2.setCredentials(credentials);
+  }
+  return oauth2;
+}
+
+app.post('/api/gmail/sync', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: senders, error: sendersErr } = await supabase
+      .from('gmail_watched_senders')
+      .select('sender_email, display_name')
+      .eq('user_id', userId);
+    if (sendersErr || !senders || senders.length === 0) {
+      return res.json({ synced: 0, message: 'No watched senders' });
+    }
+    const auth = await getValidGmailClient(userId);
+    if (!auth) {
+      return res.status(400).json({ error: 'Gmail not connected or token expired. Reconnect in Notices.' });
+    }
+    const gmail = google.gmail({ version: 'v1', auth });
+    const senderMap = {};
+    senders.forEach(s => {
+      const e = String(s.sender_email || '').trim().toLowerCase();
+      if (e) senderMap[e] = s.display_name || e;
+    });
+
+    const { data: list } = await gmail.users.messages.list({
+      userId: 'me',
+      maxResults: 50,
+      q: 'in:inbox is:unread',
+    });
+    const messages = list.messages || [];
+    let created = 0;
+    for (const m of messages) {
+      const { data: msg } = await gmail.users.messages.get({ userId: 'me', id: m.id });
+      const fromHeader = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'from');
+      const subjectHeader = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'subject');
+      const from = fromHeader?.value || '';
+      const fromEmail = (from.match(/<([^>]+)>/) || [null, from])[1] || from;
+      const addr = fromEmail.trim().toLowerCase();
+      if (!senderMap[addr]) continue;
+      const receivedAt = msg.internalDate ? new Date(parseInt(msg.internalDate, 10)).toISOString() : new Date().toISOString();
+      const { error: insErr } = await supabase.from('email_notifications').insert({
+        user_id: userId,
+        from_email: addr,
+        from_name: senderMap[addr],
+        gmail_message_id: m.id,
+        subject: subjectHeader?.value || null,
+        received_at: receivedAt,
+        seen: false,
+      });
+      if (!insErr) created++;
+    }
+    res.json({ synced: true, newCount: created });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || 'Sync failed' });
   }
 });
 
