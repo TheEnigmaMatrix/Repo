@@ -23,3 +23,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Bus schedule image (single row: admin-uploaded image URL for students to view)
+CREATE TABLE bus_schedule_image (
+  id INT PRIMARY KEY DEFAULT 1,
+  image_url TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_by UUID REFERENCES auth.users(id),
+  CONSTRAINT single_row CHECK (id = 1)
+);
+-- Optional: insert initial row so upsert works
+INSERT INTO bus_schedule_image (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
