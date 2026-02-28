@@ -1,10 +1,22 @@
+// Prefer the shared Supabase client created in `supabase-client.js`,
+// but safely fall back to creating one if needed.
 const SUPABASE_URL = 'https://zvcqzevzxnqllumwqpxs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2Y3F6ZXZ6eG5xbGx1bXdxcHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTY2MTgsImV4cCI6MjA4Nzc5MjYxOH0.Z3d98gsqhid1pC6hnaMPpnPpNmcR0D2GC-2xUusXuBs';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use a file-local name to avoid colliding with any other global `supabase` binding.
+const notificationsSupabase =
+    window.uahSupabase ||
+    (window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null);
 
 async function getToken() {
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token || null;
+    // Prefer the shared auth helper if available.
+    if (window.uahAuth?.getToken) {
+        return await window.uahAuth.getToken();
+    }
+    if (notificationsSupabase) {
+        const { data } = await notificationsSupabase.auth.getSession();
+        return data.session?.access_token || null;
+    }
+    return null;
 }
 
 let isAdminUser = false;
@@ -12,7 +24,8 @@ let lastUnseenCount = -1;
 let pollUnseenInterval = null;
 
 document.getElementById('logout')?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    if (!notificationsSupabase) return;
+    await notificationsSupabase.auth.signOut();
     window.location.href = '/';
 });
 
@@ -40,19 +53,21 @@ async function getAuthHeaders(extraHeaders) {
 
     // Admin only if Supabase session exists (optional)
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.id) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-            if (profile) {
-                isAdminUser = profile.role === 'admin';
-                const adminEl = document.getElementById('adminSection');
-                const formEl = document.getElementById('adminFormContainer');
-                if (adminEl) adminEl.style.display = 'block';
-                if (formEl && isAdminUser) formEl.style.display = 'block';
+        if (notificationsSupabase) {
+            const { data: { user } } = await notificationsSupabase.auth.getUser();
+            if (user?.id) {
+                const { data: profile } = await notificationsSupabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+                if (profile) {
+                    isAdminUser = profile.role === 'admin';
+                    const adminEl = document.getElementById('adminSection');
+                    const formEl = document.getElementById('adminFormContainer');
+                    if (adminEl) adminEl.style.display = 'block';
+                    if (formEl && isAdminUser) formEl.style.display = 'block';
+                }
             }
         }
     } catch (_) { /* ignore */ }

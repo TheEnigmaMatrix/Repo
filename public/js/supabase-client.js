@@ -9,7 +9,9 @@
   const SUPABASE_ANON_KEY =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2Y3F6ZXZ6eG5xbGx1bXdxcHhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTY2MTgsImV4cCI6MjA4Nzc5MjYxOH0.Z3d98gsqhid1pC6hnaMPpnPpNmcR0D2GC-2xUusXuBs';
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  // Use a non-global identifier to avoid clashing with other pages that also
+  // declare `const supabase = ...` at top level.
+  const uahSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true
     }
@@ -21,7 +23,7 @@
   }
 
   async function getToken() {
-    const { data } = await supabase.auth.getSession();
+    const { data } = await uahSupabase.auth.getSession();
     return data.session?.access_token || null;
   }
 
@@ -31,13 +33,13 @@
       sessionStorage.removeItem('uah-just-logged-in');
       await new Promise(function (r) { setTimeout(r, 100); });
     }
-    var session = (await supabase.auth.getSession()).data.session;
+    var session = (await uahSupabase.auth.getSession()).data.session;
     if (session?.user) {
       window.uahCurrentUser = session.user;
       if (session.user.email) localStorage.setItem('uah-login-email', session.user.email);
       return session.user;
     }
-    var result = await supabase.auth.getUser();
+    var result = await uahSupabase.auth.getUser();
     var user = result.data.user;
     if (user) {
       window.uahCurrentUser = user;
@@ -58,12 +60,12 @@
     const btn = document.getElementById('logout');
     if (!btn) return;
     btn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await uahSupabase.auth.signOut();
       window.location.href = '/';
     });
   }
 
-  window.uahSupabase = supabase;
+  window.uahSupabase = uahSupabase;
   window.uahAuth = { getToken, requireUser, attachLogout };
 
   // Enforce login on every page except index.
