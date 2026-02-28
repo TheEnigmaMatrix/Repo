@@ -26,6 +26,8 @@ function loadSchedule() {
         container.innerHTML = `
             <div class="no-schedule">Bus schedule not uploaded yet</div>
         `;
+
+        
     };
 }
 
