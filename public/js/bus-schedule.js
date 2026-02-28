@@ -1,15 +1,18 @@
 const SCHEDULE_URL =
 "https://oaearcywpoqusbqmeagw.supabase.co/storage/v1/object/public/bus-schedule%20bucket/schedule.png";
+
 function loadSchedule() {
     const container = document.getElementById("busScheduleList");
 
-    // show loading
+    if (!container) {
+        console.error("busScheduleList not found");
+        return;
+    }
+
     container.innerHTML = `<div class="no-schedule">Loading latest bus schedule...</div>`;
 
     const img = new Image();
-
-    // avoid caching (important!)
-    img.src = SCHEDULE_URL + "?t=" + Date.now();
+    img.src = SCHEDULE_URL + "?v=" + Date.now();
 
     img.onload = () => {
         container.innerHTML = `
@@ -21,11 +24,9 @@ function loadSchedule() {
 
     img.onerror = () => {
         container.innerHTML = `
-            <div class="no-schedule">
-                Bus schedule not uploaded yet
-            </div>
+            <div class="no-schedule">Bus schedule not uploaded yet</div>
         `;
     };
 }
 
-loadSchedule();
+document.addEventListener("DOMContentLoaded", loadSchedule);
