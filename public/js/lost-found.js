@@ -46,9 +46,16 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         });
         const data = await res.json();
         if (res.ok) {
+<<<<<<< Updated upstream
             alert('Item reported successfully!');
             document.getElementById('reportForm').reset();
             loadItems(); // refresh list
+=======
+            alert('Found item reported successfully!');
+            e.target.reset();
+            loadItems();
+            setTimeout(loadItems, 600);
+>>>>>>> Stashed changes
         } else {
             alert(data.error);
         }
@@ -58,7 +65,44 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
     }
 });
 
+<<<<<<< Updated upstream
 // Load items with optional filters
+=======
+// Handle Lost Item Form Submission
+document.getElementById('lostForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = await getToken();
+    if (!token) return;
+
+    const formData = new FormData(e.target);
+    const files = document.getElementById('lostImages').files;
+    for (let i = 0; i < files.length; i++) {
+        formData.append('images', files[i]);
+    }
+
+    try {
+        const res = await fetch('/api/lost-found', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('Lost item reported successfully!');
+            e.target.reset();
+            loadItems();
+            setTimeout(loadItems, 600);
+        } else {
+            alert(data.error);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Failed to report lost item');
+    }
+});
+
+// Load items (lost + found) for all logged-in users
+>>>>>>> Stashed changes
 async function loadItems() {
     const type = document.getElementById('filterType').value;
     const category = document.getElementById('filterCategory').value;

@@ -758,6 +758,7 @@ app.delete('/api/restaurants/:id', authenticate, async (req, res) => {
   }
 });
 
+<<<<<<< Updated upstream
 // Admin: Update a restaurant (optional)
 app.put('/api/restaurants/:id', authenticate, async (req, res) => {
   try {
@@ -777,6 +778,11 @@ app.put('/api/restaurants/:id', authenticate, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+=======
+// Redirect /pages or /pages/ so user never sees "Cannot GET /pages/"
+app.get('/pages', (req, res) => res.redirect(302, '/dashboard.html'));
+app.get('/pages/', (req, res) => res.redirect(302, '/dashboard.html'));
+>>>>>>> Stashed changes
 
 // ========== START SERVER ==========
 app.listen(PORT, () => {
