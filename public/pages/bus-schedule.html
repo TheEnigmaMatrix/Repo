@@ -248,7 +248,7 @@
                 <p style="color: var(--text-muted);">Campus shuttle timings</p>
             </div>
             <div class="search-container">
-                <input type="text" placeholder="Search stops..." id="searchInput">
+                <!-- <input type="text" placeholder="Search stops..." id="searchInput"> -->
             </div>
             <button class="theme-btn" id="themeToggle"><span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span></button>
         </header>
@@ -262,14 +262,26 @@
             </form>
         </div>
 
-        <div id="busScheduleList">
-            <div class="no-schedule">Loading schedule…</div>
-        </div>
+       <div id="busScheduleList">
+    <div class="schedule-image-card">
+        <img id="scheduleImg" alt="Bus Schedule">
+    </div>
+</div>
     </main>
 
-    <script src="/js/common.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/supabase-client.js"></script>
     <script src="/js/bus-schedule.js"></script>
+    <script>
+const img = document.getElementById("scheduleImg");
+
+// your public supabase image
+img.src = "https://oaearcywpoqusbqmeagw.supabase.co/storage/v1/object/public/bus-schedule%20bucket/schedule.png?v=" + Date.now();
+
+img.onerror = () => {
+    img.alt = "Bus schedule not available";
+};
+</script>
 </body>
 </html>
